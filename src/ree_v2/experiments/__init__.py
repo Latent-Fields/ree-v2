@@ -10,6 +10,7 @@ from .profiles import (
     simulate_metrics,
 )
 from .resource_policy import MACHINE_PROFILES, MachineProfile, decide_execution_mode
+from .runner import RunExecutionResult, execute_profile_condition
 
 __all__ = [
     "ClaimProfile",
@@ -19,7 +20,9 @@ __all__ = [
     "ResourceEstimate",
     "decide_execution_mode",
     "evaluate_failure_signatures",
+    "execute_profile_condition",
     "get_profile",
     "get_profiles",
+    "RunExecutionResult",
     "simulate_metrics",
 ]

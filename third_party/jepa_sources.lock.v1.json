@@ -9,6 +9,9 @@
   ],
   "compatibility_target": "IMPL-022",
   "last_verified_utc": "2026-02-14T00:00:00Z",
+  "third_party_notices_path": "third_party/THIRD_PARTY_NOTICES.md",
+  "attribution_citation_path": "docs/third_party/JEPA_ATTRIBUTION_AND_CITATION.md",
+  "compliance_checker": "scripts/check_third_party_compliance.py",
   "upstream_commit_rationale": "source_mode=internal_minimal_impl; immutable snapshot hash over local JEPA adapter/substrate files pins provenance when no single external upstream commit is mirrored directly.",
   "snapshot_inputs": [
     "src/ree_v2/latent_substrate/encoder.py",

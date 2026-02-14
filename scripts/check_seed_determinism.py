@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import math
 import sys
 from pathlib import Path
 
@@ -12,7 +11,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from ree_v2.experiments.profiles import get_profiles, simulate_metrics
+from ree_v2.experiments.profiles import get_profiles
+from ree_v2.experiments.runner import execute_profile_condition
 
 
 def parse_args() -> argparse.Namespace:
@@ -43,9 +43,21 @@ def main() -> int:
     for profile in profiles:
         for condition in profile.conditions:
             seed = profile.default_seeds[0]
-            first = simulate_metrics(profile.experiment_type, condition.name, seed)
-            second = simulate_metrics(profile.experiment_type, condition.name, seed)
+            first_result = execute_profile_condition(
+                experiment_type=profile.experiment_type,
+                condition_name=condition.name,
+                seed=seed,
+                write=False,
+            )
+            second_result = execute_profile_condition(
+                experiment_type=profile.experiment_type,
+                condition_name=condition.name,
+                seed=seed,
+                write=False,
+            )
             replay_pairs += 1
+            first = first_result.metrics_values
+            second = second_result.metrics_values
 
             if set(first) != set(second):
                 issues.append(
@@ -64,8 +76,13 @@ def main() -> int:
                         f"delta={delta:.10f} > {args.max_abs_delta}"
                     )
 
-            first_stream = stream_presence(condition.include_uncertainty, condition.include_action_token)
-            second_stream = stream_presence(condition.include_uncertainty, condition.include_action_token)
+            first_stream = first_result.adapter_signals.get("stream_presence", {})
+            second_stream = second_result.adapter_signals.get("stream_presence", {})
+            expected_stream = stream_presence(condition.include_uncertainty, condition.include_action_token)
+            if first_stream != expected_stream:
+                issues.append(
+                    f"{profile.experiment_type}/{condition.name}: stream presence mismatch expected={expected_stream} got={first_stream}"
+                )
             if first_stream != second_stream:
                 issues.append(f"{profile.experiment_type}/{condition.name}: stream presence drift detected")
 

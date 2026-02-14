@@ -313,25 +313,16 @@ def _resolve_metric_key(metrics: dict[str, float], metric_key: str) -> float:
 
 
 def simulate_metrics(experiment_type: str, condition_name: str, seed: int) -> dict[str, float]:
-    profile = get_profile(experiment_type)
-    condition = next(item for item in profile.conditions if item.name == condition_name)
+    # Local import avoids circular dependency with the runner module importing profile metadata.
+    from ree_v2.experiments.runner import execute_profile_condition
 
-    metrics: dict[str, float] = {}
-    for key, base_value in condition.base_metrics.items():
-        if key.endswith("_count") or key.endswith("_events"):
-            metrics[key] = float(max(0, int(round(base_value + _seeded_jitter(experiment_type, condition_name, seed, key, 0.2)))))
-            continue
-        if key == "fatal_error_count":
-            metrics[key] = 0.0
-            continue
-
-        jitter = _seeded_jitter(experiment_type, condition_name, seed, key, 0.015)
-        value = base_value * (1.0 + jitter)
-        if key.endswith("_rate") or key.endswith("_coverage_rate") or key.endswith("_completeness_rate"):
-            value = max(0.0, min(1.0, value))
-        metrics[key] = round(value, 12)
-
-    return metrics
+    result = execute_profile_condition(
+        experiment_type=experiment_type,
+        condition_name=condition_name,
+        seed=seed,
+        write=False,
+    )
+    return dict(result.metrics_values)
 
 
 def evaluate_failure_signatures(experiment_type: str, metrics: dict[str, float]) -> list[str]:
