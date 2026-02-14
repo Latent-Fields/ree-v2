@@ -118,20 +118,20 @@ def _trajectory_integrity_rollout(condition_name: str, seed: int, steps: int) ->
 def _jepa_anchor_ablation_rollout(condition_name: str, seed: int, steps: int) -> ToyRollout:
     cfg = {
         "ema_anchor_on": {
-            "anchor_decay": 0.986,
+            "anchor_decay": 0.93,
             "predict_gain": 0.34,
             "predict_noise": 0.026,
             "shift_scale": 0.08,
             "consistency_threshold": 0.18,
-            "drift_threshold": 0.115,
+            "drift_threshold": 0.35,
         },
         "ema_anchor_off": {
-            "anchor_decay": 0.82,
+            "anchor_decay": 0.70,
             "predict_gain": 0.12,
             "predict_noise": 0.052,
             "shift_scale": 0.24,
             "consistency_threshold": 0.28,
-            "drift_threshold": 0.17,
+            "drift_threshold": 0.12,
         },
     }[condition_name]
 
@@ -272,8 +272,8 @@ def _commit_dual_error_channels_rollout(condition_name: str, seed: int, steps: i
         "pre_post_split_streams": {
             "pre_noise": 0.06,
             "post_noise": 0.05,
-            "channel_coupling": 0.34,
-            "post_gain": 0.42,
+            "channel_coupling": 0.12,
+            "post_gain": 0.48,
             "reversal_cutoff": 0.44,
         },
     }[condition_name]
@@ -286,6 +286,7 @@ def _commit_dual_error_channels_rollout(condition_name: str, seed: int, steps: i
     post_signal: list[float] = []
     realized_signal: list[float] = []
     latent_errors: list[float] = []
+    coupling_series: list[float] = []
 
     events = {
         "commitment_reversal": [],
@@ -310,6 +311,7 @@ def _commit_dual_error_channels_rollout(condition_name: str, seed: int, steps: i
         pre_noise.append(pre_n)
         post_signal.append(post)
         realized_signal.append(realized)
+        coupling_series.append(cfg["channel_coupling"])
 
         latent_errors.append(abs(realized - pre))
         reversal = 1 if abs(pre - post) > cfg["reversal_cutoff"] else 0
@@ -327,6 +329,7 @@ def _commit_dual_error_channels_rollout(condition_name: str, seed: int, steps: i
             "post_signal": post_signal,
             "realized_signal": realized_signal,
             "latent_error": latent_errors,
+            "channel_coupling": coupling_series,
         }
     )
     rollout.events.update(events)

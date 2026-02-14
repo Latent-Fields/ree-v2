@@ -248,6 +248,12 @@ def collect_run_inventory() -> list[dict[str, str]]:
             scenario = manifest.get("scenario", {})
             condition = str(scenario.get("condition") or scenario.get("name") or "N/A")
             mode, backend, runtime = condition_lookup(manifest.get("experiment_type", ""), condition)
+            backend_name = str(scenario.get("backend", ""))
+            is_jepa_backend = backend_name == "jepa_inference" or "jepa_inference" in str(
+                manifest.get("runner", {}).get("version", "")
+            )
+            synthetic_fallback = bool(scenario.get("synthetic_frame_fallback", False))
+            checkpoint_verified = bool(scenario.get("jepa_checkpoint_verified", False))
 
             claim_ids = manifest.get("claim_ids_tested", [])
             failures = manifest.get("failure_signatures", [])
@@ -264,6 +270,9 @@ def collect_run_inventory() -> list[dict[str, str]]:
                 "compute_backend": backend,
                 "runtime_minutes": runtime,
                 "pack_path": str(run_dir.relative_to(REPO_ROOT)),
+                "is_jepa_backend": "true" if is_jepa_backend else "false",
+                "synthetic_frame_fallback": "true" if synthetic_fallback else "false",
+                "jepa_checkpoint_verified": "true" if checkpoint_verified else "false",
             }
             rows.append(row)
 
@@ -310,6 +319,36 @@ def build_claim_summary(rows: list[dict[str, str]]) -> list[dict[str, str]]:
         )
 
     return summary_rows
+
+
+def jepa_run_snapshot(rows: list[dict[str, str]]) -> dict[str, str]:
+    total = 0
+    real = 0
+    fallback = 0
+    real_verified = 0
+    real_unverified = 0
+
+    for row in rows:
+        if row.get("is_jepa_backend") != "true":
+            continue
+        total += 1
+        if row.get("synthetic_frame_fallback") == "true":
+            fallback += 1
+            continue
+
+        real += 1
+        if row.get("jepa_checkpoint_verified") == "true":
+            real_verified += 1
+        else:
+            real_unverified += 1
+
+    return {
+        "jepa_runs_total": str(total),
+        "jepa_real_runs": str(real),
+        "jepa_synthetic_fallback_runs": str(fallback),
+        "jepa_real_verified_runs": str(real_verified),
+        "jepa_real_unverified_runs": str(real_unverified),
+    }
 
 
 def local_options_watch() -> dict[str, str]:
@@ -371,6 +410,7 @@ def render_handoff(
     claim_rows: list[dict[str, str]],
     blockers: list[str],
     local_watch: dict[str, str],
+    jepa_watch: dict[str, str],
 ) -> str:
     ci_columns = ["gate", "status", "evidence"]
     ci_rows = [{"gate": g, "status": s, "evidence": e} for g, s, e in ci_gates]
@@ -442,6 +482,11 @@ def render_handoff(
             f"- local_blocked_sessions_this_week: `{local_watch['local_blocked_sessions_this_week']}`",
             f"- recommended_local_action: `{local_watch['recommended_local_action']}`",
             f"- rationale: {local_watch['rationale']}",
+            f"- jepa_runs_total: `{jepa_watch['jepa_runs_total']}`",
+            f"- jepa_real_runs: `{jepa_watch['jepa_real_runs']}`",
+            f"- jepa_synthetic_fallback_runs: `{jepa_watch['jepa_synthetic_fallback_runs']}`",
+            f"- jepa_real_verified_runs: `{jepa_watch['jepa_real_verified_runs']}`",
+            f"- jepa_real_unverified_runs: `{jepa_watch['jepa_real_unverified_runs']}`",
             "",
         ]
     )
@@ -487,6 +532,7 @@ def main() -> int:
     ci_gates = collect_ci_gates()
     run_rows = collect_run_inventory()
     claim_rows = build_claim_summary(run_rows)
+    jepa_watch = jepa_run_snapshot(run_rows)
 
     failed = [gate for gate, status, _evidence in ci_gates if status == "FAIL"]
     if failed:
@@ -513,6 +559,7 @@ def main() -> int:
         claim_rows=claim_rows,
         blockers=blockers,
         local_watch=local_watch,
+        jepa_watch=jepa_watch,
     )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

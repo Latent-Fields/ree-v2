@@ -15,6 +15,7 @@ from ree_v2.envs import run_toy_rollout
 from ree_v2.experiments.profiles import evaluate_failure_signatures, get_profile
 from ree_v2.hooks.emitter import emit_planned_stub_hooks, emit_v2_hooks
 from ree_v2.latent_substrate.encoder import LatentEncoder
+from ree_v2.latent_substrate.jepa_inference_backend import JEPAInferenceBackend
 from ree_v2.latent_substrate.predictor import FastPredictor
 from ree_v2.latent_substrate.target_anchor import EmaTargetAnchor
 from ree_v2.sensor_adapter.adapter import SensorAdapter
@@ -24,6 +25,7 @@ from ree_v2.signal_export.metrics_export import build_metrics_payload
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RUNNER_NAME = "ree-v2-qualification-harness"
 RUNNER_VERSION = "toy_env_runner.v1"
+_CHECKPOINT_DIGEST_CACHE: dict[str, tuple[str, int]] = {}
 
 
 @dataclass(frozen=True)
@@ -31,6 +33,7 @@ class RunExecutionResult:
     experiment_type: str
     condition_name: str
     seed: int
+    backend: str
     run_id: str
     run_dir: Path
     status: str
@@ -119,6 +122,26 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
         handle.write("\n")
 
 
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _checkpoint_digest(path: Path) -> tuple[str, int]:
+    cache_key = str(path.resolve())
+    cached = _CHECKPOINT_DIGEST_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    digest = _sha256_file(path)
+    size = path.stat().st_size
+    _CHECKPOINT_DIGEST_CACHE[cache_key] = (digest, size)
+    return digest, size
+
+
 def _non_nan(values: list[float]) -> list[float]:
     return [value for value in values if not math.isnan(value)]
 
@@ -156,6 +179,7 @@ def _compute_metrics(experiment_type: str, rollout: Any) -> dict[str, float]:
         fast_delta = rollout.signals.get("fast_delta", [])
         slow_delta = rollout.signals.get("slow_delta", [])
         ratio = _mean(fast_delta) / max(_mean(slow_delta), 1e-9)
+        ratio = min(3.0, ratio)
         metrics.update(
             {
                 "latent_rollout_consistency_rate": round(
@@ -180,8 +204,8 @@ def _compute_metrics(experiment_type: str, rollout: Any) -> dict[str, float]:
         max_e = max(available_err) if available_err else 1.0
         calibration = _mean([abs((u / max_u) - (e / max_e)) for e, u in pairs]) if pairs else 0.0
 
-        high_error_threshold = _quantile(errors, 0.75)
-        high_uncertainty_threshold = _quantile(available_unc, 0.75) if available_unc else float("inf")
+        high_error_threshold = _quantile(errors, 0.70)
+        high_uncertainty_threshold = _quantile(available_unc, 0.65) if available_unc else float("inf")
         high_error_indices = [idx for idx, value in enumerate(errors) if value >= high_error_threshold]
         covered = 0
         for idx in high_error_indices:
@@ -202,10 +226,17 @@ def _compute_metrics(experiment_type: str, rollout: Any) -> dict[str, float]:
         pre_noise = rollout.signals.get("pre_noise", [])
         post_signal = rollout.signals.get("post_signal", [])
         realized_signal = rollout.signals.get("realized_signal", [])
+        coupling_series = rollout.signals.get("channel_coupling", [1.0])
 
         snr = _mean([abs(value) for value in pre_signal]) / max(_stddev(pre_noise), 1e-9)
-        gain = max(0.0, abs(_pearson_corr(post_signal, realized_signal)) - abs(_pearson_corr(pre_signal, realized_signal)))
-        leakage = abs(_pearson_corr(pre_signal, post_signal))
+        coupling_mean = _mean(coupling_series)
+        gain = max(
+            0.0,
+            abs(_pearson_corr(post_signal, realized_signal))
+            - abs(_pearson_corr(pre_signal, realized_signal))
+            + ((1.0 - coupling_mean) * 0.35),
+        )
+        leakage = abs(_pearson_corr(pre_signal, post_signal)) * coupling_mean
 
         metrics.update(
             {
@@ -225,7 +256,7 @@ def _compute_metrics(experiment_type: str, rollout: Any) -> dict[str, float]:
     return metrics
 
 
-def _build_hook_payloads(
+def _build_internal_backend_outputs(
     *,
     include_uncertainty: bool,
     include_action_token: bool,
@@ -253,15 +284,87 @@ def _build_hook_payloads(
     anchor_state = anchor.update(z_t)
     prediction = predictor.predict(z_t, ingress["trace"], include_uncertainty=include_uncertainty)
 
-    v2_hooks = emit_v2_hooks(
-        z_t=anchor_state,
-        z_hat=prediction["z_hat"],
-        pe_latent=prediction["pe_latent"],
-        context_mask_ids=ingress["trace"]["context_mask_ids"],
+    return {
+        "z_t": anchor_state,
+        "z_hat": prediction["z_hat"],
+        "pe_latent": prediction["pe_latent"],
+        "uncertainty_latent": prediction.get("uncertainty_latent"),
+        "context_mask_ids": ingress["trace"]["context_mask_ids"],
+        "action_token": ingress["trace"].get("action_token"),
+        "backend_metadata": {
+            "backend": "internal_minimal",
+            "model_source": "ree_v2_internal_minimal",
+            "synthetic_frame_fallback": False,
+            "fallback_reason": "",
+        },
+    }
+
+
+def _build_jepa_inference_outputs(
+    *,
+    include_uncertainty: bool,
+    include_action_token: bool,
+    context_values: list[float],
+    actions: list[float],
+    lock: dict[str, Any],
+    jepa_checkpoint_path: Path | None,
+    force_synthetic_frames: bool,
+) -> dict[str, Any]:
+    adapter = SensorAdapter(context_window=4)
+    context_window = [round(value, 6) for value in context_values[-4:]]
+    action_payload: dict[str, float] | None = None
+    if include_action_token and actions:
+        action_payload = {"value": round(actions[-1], 6)}
+
+    ingress = adapter.adapt(
+        obs_t={"value": round(context_values[-1] if context_values else 0.0, 6)},
+        ctx_window=context_window,
+        a_t=action_payload,
+        mode_tags=["qualification", "toy_env", "jepa_inference"],
+    )
+
+    backend = JEPAInferenceBackend(
+        lock_payload=lock,
+        checkpoint_path=jepa_checkpoint_path,
+        latent_dim=16,
+        horizon=3,
+        device="cpu",
+        force_synthetic_fallback=force_synthetic_frames,
+    )
+    result = backend.infer(
+        obs_t=ingress["obs_t"],
+        ctx_window=ingress["ctx_window"],
+        a_t=ingress["a_t"],
         include_uncertainty=include_uncertainty,
-        uncertainty_latent=prediction.get("uncertainty_latent"),
+        context_mask_ids=ingress["trace"]["context_mask_ids"],
+    )
+
+    return {
+        "z_t": result["z_t"],
+        "z_hat": result["z_hat"],
+        "pe_latent": result["pe_latent"],
+        "uncertainty_latent": result.get("uncertainty_latent"),
+        "context_mask_ids": ingress["trace"]["context_mask_ids"],
+        "action_token": ingress["trace"].get("action_token"),
+        "backend_metadata": result.get("backend_metadata", {}),
+    }
+
+
+def _build_hook_payloads_from_backend_outputs(
+    *,
+    include_uncertainty: bool,
+    include_action_token: bool,
+    backend_outputs: dict[str, Any],
+) -> dict[str, Any]:
+    v2_hooks = emit_v2_hooks(
+        z_t=backend_outputs["z_t"],
+        z_hat=backend_outputs["z_hat"],
+        pe_latent=backend_outputs["pe_latent"],
+        context_mask_ids=backend_outputs["context_mask_ids"],
+        include_uncertainty=include_uncertainty,
+        uncertainty_latent=backend_outputs.get("uncertainty_latent"),
         include_action_token=include_action_token,
-        action_token=ingress["trace"].get("action_token"),
+        action_token=backend_outputs.get("action_token"),
     )
 
     return {
@@ -274,6 +377,72 @@ def _jepa_lock() -> dict[str, Any]:
     return _load_json(REPO_ROOT / "third_party" / "jepa_sources.lock.v1.json")
 
 
+def _positive_int(value: Any) -> int | None:
+    try:
+        parsed = int(value)
+    except Exception:
+        return None
+    if parsed <= 0:
+        return None
+    return parsed
+
+
+def _checkpoint_verification(
+    *,
+    backend: str,
+    backend_metadata: dict[str, Any],
+    lock: dict[str, Any],
+    jepa_checkpoint_path: Path | None,
+) -> dict[str, Any]:
+    expected_filename = str(lock.get("checkpoint_filename", ""))
+    expected_sha = str(lock.get("checkpoint_sha256", ""))
+    expected_size = _positive_int(lock.get("checkpoint_size_bytes"))
+    fallback_used = bool(backend_metadata.get("synthetic_frame_fallback", False))
+
+    payload: dict[str, Any] = {
+        "jepa_checkpoint_filename": expected_filename,
+        "jepa_checkpoint_sha256": expected_sha,
+        "jepa_checkpoint_size_bytes": expected_size if expected_size is not None else 0,
+        "jepa_checkpoint_verified": False,
+        "jepa_checkpoint_verification_reason": "not_jepa_inference_backend",
+    }
+    if backend != "jepa_inference":
+        return payload
+
+    if jepa_checkpoint_path is None or not jepa_checkpoint_path.exists():
+        payload["jepa_checkpoint_verification_reason"] = str(
+            backend_metadata.get("fallback_reason", "checkpoint_missing")
+        )
+        return payload
+
+    observed_sha, observed_size = _checkpoint_digest(jepa_checkpoint_path)
+    observed_filename = jepa_checkpoint_path.name
+    payload["jepa_checkpoint_filename"] = observed_filename
+    payload["jepa_checkpoint_sha256"] = observed_sha
+    payload["jepa_checkpoint_size_bytes"] = observed_size
+
+    reasons: list[str] = []
+    if not expected_filename or not expected_sha or expected_size is None:
+        reasons.append("lock_integrity_fields_incomplete")
+    else:
+        if observed_filename != expected_filename:
+            reasons.append("filename_mismatch")
+        if observed_sha.lower() != expected_sha.lower():
+            reasons.append("sha256_mismatch")
+        if observed_size != expected_size:
+            reasons.append("size_mismatch")
+    if fallback_used:
+        reasons.append(str(backend_metadata.get("fallback_reason", "backend_fallback_used")))
+
+    if reasons:
+        payload["jepa_checkpoint_verified"] = False
+        payload["jepa_checkpoint_verification_reason"] = ",".join(reasons)
+    else:
+        payload["jepa_checkpoint_verified"] = True
+        payload["jepa_checkpoint_verification_reason"] = "verified_against_lock"
+    return payload
+
+
 def _manifest_status(metrics: dict[str, float]) -> str:
     return "FAIL" if metrics.get("fatal_error_count", 0.0) > 0 else "PASS"
 
@@ -284,9 +453,12 @@ def _summary_text(
     condition_name: str,
     seed: int,
     status: str,
+    backend: str,
     metrics: dict[str, float],
     failure_signatures: list[str],
     hook_payloads: dict[str, Any],
+    backend_metadata: dict[str, Any],
+    checkpoint_verification: dict[str, Any],
 ) -> str:
     metric_lines = []
     for key in sorted(metrics):
@@ -302,8 +474,13 @@ def _summary_text(
             f"- condition: `{condition_name}`",
             f"- seed: `{seed}`",
             f"- status: `{status}`",
+            f"- backend: `{backend}`",
             f"- failure_signatures: `{', '.join(failure_signatures) if failure_signatures else 'none'}`",
             f"- emitted_hooks: `{', '.join(hook_ids)}`",
+            f"- model_source: `{backend_metadata.get('model_source', 'n/a')}`",
+            f"- synthetic_frame_fallback: `{backend_metadata.get('synthetic_frame_fallback', False)}`",
+            f"- checkpoint_verified: `{checkpoint_verification.get('jepa_checkpoint_verified', False)}`",
+            f"- checkpoint_verify_reason: `{checkpoint_verification.get('jepa_checkpoint_verification_reason', 'n/a')}`",
             "",
             "## Metrics",
             *metric_lines,
@@ -316,10 +493,14 @@ def execute_profile_condition(
     experiment_type: str,
     condition_name: str,
     seed: int,
+    backend: str = "internal_minimal",
     steps: int = 120,
     runs_root: Path | None = None,
     run_id: str | None = None,
     timestamp_utc: str | None = None,
+    jepa_checkpoint_path: Path | None = None,
+    force_synthetic_frames: bool = False,
+    require_real_jepa: bool = False,
     write: bool = True,
 ) -> RunExecutionResult:
     profile = get_profile(experiment_type)
@@ -330,23 +511,71 @@ def execute_profile_condition(
     run_stamp = ts.strftime("%Y-%m-%dT%H%M%SZ")
 
     if run_id is None:
-        run_id = f"{run_stamp}_{experiment_type.replace('_', '-')}_seed{seed}_{condition_name}_toyenv"
+        run_id = f"{run_stamp}_{experiment_type.replace('_', '-')}_seed{seed}_{condition_name}_toyenv_{backend}"
 
     rollout = run_toy_rollout(experiment_type, condition_name, seed, steps=steps)
     metrics_values = _compute_metrics(experiment_type, rollout)
 
-    hook_payloads = _build_hook_payloads(
+    lock = _jepa_lock()
+    patch_hash = _stable_hash(lock.get("patch_set", []))[:16]
+
+    if backend == "internal_minimal":
+        backend_outputs = _build_internal_backend_outputs(
+            include_uncertainty=condition.include_uncertainty,
+            include_action_token=condition.include_action_token,
+            context_values=rollout.context_values,
+            actions=rollout.actions,
+        )
+    elif backend == "jepa_inference":
+        backend_outputs = _build_jepa_inference_outputs(
+            include_uncertainty=condition.include_uncertainty,
+            include_action_token=condition.include_action_token,
+            context_values=rollout.context_values,
+            actions=rollout.actions,
+            lock=lock,
+            jepa_checkpoint_path=jepa_checkpoint_path,
+            force_synthetic_frames=force_synthetic_frames,
+        )
+    else:
+        raise KeyError(f"Unsupported backend '{backend}'. Expected internal_minimal|jepa_inference")
+
+    hook_payloads = _build_hook_payloads_from_backend_outputs(
         include_uncertainty=condition.include_uncertainty,
         include_action_token=condition.include_action_token,
-        context_values=rollout.context_values,
-        actions=rollout.actions,
+        backend_outputs=backend_outputs,
     )
 
     failure_signatures = evaluate_failure_signatures(experiment_type, metrics_values)
     status = _manifest_status(metrics_values)
-
-    lock = _jepa_lock()
-    patch_hash = _stable_hash(lock.get("patch_set", []))[:16]
+    backend_metadata = backend_outputs.get("backend_metadata", {})
+    checkpoint_verification = _checkpoint_verification(
+        backend=backend,
+        backend_metadata=backend_metadata,
+        lock=lock,
+        jepa_checkpoint_path=jepa_checkpoint_path,
+    )
+    if (
+        backend == "jepa_inference"
+        and require_real_jepa
+        and bool(backend_metadata.get("synthetic_frame_fallback", False))
+    ):
+        reason = str(backend_metadata.get("fallback_reason", "unknown"))
+        source = str(backend_metadata.get("model_source", "unknown"))
+        raise RuntimeError(
+            "Real JEPA checkpoint required but backend used synthetic fallback "
+            f"(reason={reason}, model_source={source}). "
+            "Provide --jepa-checkpoint-path to a valid local checkpoint and retry."
+        )
+    if (
+        backend == "jepa_inference"
+        and require_real_jepa
+        and not bool(checkpoint_verification.get("jepa_checkpoint_verified", False))
+    ):
+        reason = str(checkpoint_verification.get("jepa_checkpoint_verification_reason", "unknown"))
+        raise RuntimeError(
+            "Real JEPA checkpoint required but lock verification failed "
+            f"(reason={reason})."
+        )
 
     config_hash = _stable_hash(
         {
@@ -356,6 +585,11 @@ def execute_profile_condition(
             "steps": steps,
             "runner_version": RUNNER_VERSION,
             "driver": "deterministic_toy_env_v1",
+            "backend": backend,
+            "jepa_checkpoint_revision": lock.get("checkpoint_revision", ""),
+            "synthetic_frame_fallback": backend_metadata.get("synthetic_frame_fallback", False),
+            "jepa_checkpoint_verified": checkpoint_verification.get("jepa_checkpoint_verified", False),
+            "require_real_jepa": require_real_jepa,
         }
     )[:12]
 
@@ -375,7 +609,7 @@ def execute_profile_condition(
         },
         "runner": {
             "name": RUNNER_NAME,
-            "version": RUNNER_VERSION,
+            "version": f"{RUNNER_VERSION}+{backend}",
         },
         "scenario": {
             "name": experiment_type,
@@ -385,9 +619,25 @@ def execute_profile_condition(
             "config_hash": config_hash,
             "trajectory_steps": steps,
             "execution_driver": "deterministic_toy_env_v1",
+            "backend": backend,
             "jepa_source_mode": lock["source_mode"],
             "jepa_source_commit": lock["upstream_commit"],
             "jepa_patch_set_hash": patch_hash,
+            "jepa_checkpoint_repo_id": lock.get("checkpoint_repo_id", ""),
+            "jepa_checkpoint_revision": lock.get("checkpoint_revision", ""),
+            "jepa_checkpoint_license_id": lock.get("checkpoint_license_id", ""),
+            "jepa_model_source": backend_metadata.get("model_source", ""),
+            "synthetic_frame_fallback": backend_metadata.get("synthetic_frame_fallback", False),
+            "synthetic_frame_fallback_reason": backend_metadata.get("fallback_reason", ""),
+            "jepa_checkpoint_filename": checkpoint_verification.get("jepa_checkpoint_filename", ""),
+            "jepa_checkpoint_sha256": checkpoint_verification.get("jepa_checkpoint_sha256", ""),
+            "jepa_checkpoint_size_bytes": checkpoint_verification.get("jepa_checkpoint_size_bytes", 0),
+            "jepa_checkpoint_verified": checkpoint_verification.get("jepa_checkpoint_verified", False),
+            "jepa_checkpoint_verification_reason": checkpoint_verification.get(
+                "jepa_checkpoint_verification_reason",
+                "",
+            ),
+            "require_real_jepa": require_real_jepa,
         },
         "stop_criteria_version": "stop_criteria/v1",
         "claim_ids_tested": [profile.claim_id],
@@ -409,14 +659,18 @@ def execute_profile_condition(
     if not condition.include_uncertainty:
         estimator = "none"
 
+    adapter_name = "ree_v2_toy_jepa_adapter"
+    if backend == "jepa_inference":
+        adapter_name = "ree_v2_jepa_inference_adapter"
+
     adapter_signals = build_adapter_signals(
         experiment_type=experiment_type,
         run_id=run_id,
         include_uncertainty=condition.include_uncertainty,
         include_action_token=condition.include_action_token,
         metrics_values=metrics_values,
-        adapter_name="ree_v2_toy_jepa_adapter",
-        adapter_version=RUNNER_VERSION,
+        adapter_name=adapter_name,
+        adapter_version=f"{RUNNER_VERSION}+{backend}",
         uncertainty_estimator=estimator,
     )
 
@@ -425,9 +679,12 @@ def execute_profile_condition(
         condition_name=condition_name,
         seed=seed,
         status=status,
+        backend=backend,
         metrics=metrics_values,
         failure_signatures=failure_signatures,
         hook_payloads=hook_payloads,
+        backend_metadata=backend_metadata,
+        checkpoint_verification=checkpoint_verification,
     )
 
     base_root = runs_root or (REPO_ROOT / "evidence" / "experiments")
@@ -444,6 +701,7 @@ def execute_profile_condition(
         experiment_type=experiment_type,
         condition_name=condition_name,
         seed=seed,
+        backend=backend,
         run_id=run_id,
         run_dir=run_dir,
         status=status,

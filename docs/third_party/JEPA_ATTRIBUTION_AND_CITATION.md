@@ -1,30 +1,58 @@
 # JEPA Attribution And Citation
 
-This document tracks attribution and citation obligations for JEPA-related integration surfaces used in `ree-v2`.
+This document defines attribution and citation requirements for JEPA-backed inference in `ree-v2`.
 
 ## Scope
 
-- Integration target: `IMPL-022` JEPA E1/E2 substrate contract
+- Integration target: `IMPL-022`
+- Contract outputs preserved: `experiment_pack/v1`, `jepa_adapter_signals/v1`, hook registry v1 surfaces
 - Lock file: `third_party/jepa_sources.lock.v1.json`
 - Notices file: `third_party/THIRD_PARTY_NOTICES.md`
 
-## Upstream References
+## Pinned Artifacts
 
-- `facebookresearch/vjepa2`: <https://github.com/facebookresearch/vjepa2>
-- I-JEPA paper: `arXiv:2301.08243`
-- V-JEPA2 paper/method reference: `arXiv:2506.09985`
-- JEPA uncertainty extension reference: `arXiv:2412.10925`
+- Code source: `facebookresearch/vjepa2`
+- Code commit: `c2963a47433ecca0ad4f06ec28bcfa8cb5b5cefb`
+- Primary checkpoint: `facebook/vjepa2-vitg-fpc64-256`
+- Checkpoint revision: `f353acddbcb72f0e7f87e0e7f5bb8f8a1a8cee62`
+- Primary filename: `model.safetensors`
+- Primary SHA256: `f205e77aa2ade168db6b09d4bc420d156141f64ab964278a9c181a2bdf2a232b`
+- Primary size bytes: `4138311608`
+- Primary checkpoint license: `Apache-2.0`
+- Alternate checkpoint documented: `facebook/vjepa2-vitl-fpc64-256` (`MIT`)
 
-## Citation Guidance
+## Required Citations
 
-When reporting results that depend on JEPA-compatible substrate behavior, include:
+- I-JEPA: `arXiv:2301.08243`
+- V-JEPA 2: `arXiv:2506.09985`
+- JEPA uncertainty extension: `arXiv:2412.10925`
 
-1. the repository and commit/snapshot identifier from `third_party/jepa_sources.lock.v1.json`
-2. the three arXiv references listed above
-3. explicit statement that `ree-v2` toy qualification in this step is deterministic harness simulation, not full upstream training reproduction
+## Citation Template
 
-## Compliance Notes
+When publishing or handing off JEPA-backed `ree-v2` evidence, include:
 
-- Keep `license_id` in lock file synchronized with `third_party/THIRD_PARTY_NOTICES.md`.
-- Keep run-pack provenance fields (`jepa_source_mode`, `jepa_source_commit`, `jepa_patch_set_hash`) aligned with lock values.
-- Update this file when upstream references or licensing posture change.
+1. repository + commit pin from `third_party/jepa_sources.lock.v1.json`
+2. checkpoint repo + revision pin from `third_party/jepa_sources.lock.v1.json`
+3. checkpoint hash + size pin (`checkpoint_filename`, `checkpoint_sha256`, `checkpoint_size_bytes`)
+4. license IDs (`upstream_license_id`, `checkpoint_license_id`, `license_id`)
+5. statement: "Inference-only backend (`torch.no_grad()`), no JEPA fine-tuning/training in `ree-v2`."
+6. statement if fallback used: "Deterministic synthetic-frame fallback used for smoke due unavailable local decode/model dependencies."
+
+## Compliance Rules
+
+- Never emit JEPA-backed run packs without `manifest.scenario` provenance fields:
+  - `jepa_source_mode`
+  - `jepa_source_commit`
+  - `jepa_patch_set_hash`
+- For `backend=jepa_inference`, also include:
+  - `jepa_checkpoint_repo_id`
+  - `jepa_checkpoint_revision`
+  - `jepa_checkpoint_license_id`
+- For real (non-fallback) JEPA runs, require lock-verified checkpoint fields:
+  - `jepa_checkpoint_filename`
+  - `jepa_checkpoint_sha256`
+  - `jepa_checkpoint_size_bytes`
+  - `jepa_checkpoint_verified`
+- Validate local checkpoint files before strict runs:
+  - `python3 scripts/verify_jepa_checkpoint.py --checkpoint-path /absolute/path/to/model.safetensors --variant primary`
+- Keep this doc and `third_party/THIRD_PARTY_NOTICES.md` synchronized with lock updates.

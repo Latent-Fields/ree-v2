@@ -65,6 +65,11 @@ LOCAL_WATCH_KEYS = [
     "local_blocked_sessions_this_week",
     "recommended_local_action",
     "rationale",
+    "jepa_runs_total",
+    "jepa_real_runs",
+    "jepa_synthetic_fallback_runs",
+    "jepa_real_verified_runs",
+    "jepa_real_unverified_runs",
 ]
 
 ALLOWED_DIRECTIONS = {"supports", "weakens", "mixed", "unknown"}

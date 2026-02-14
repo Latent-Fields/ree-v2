@@ -51,6 +51,19 @@ jobs:
       - name: Validate hook surfaces
         run: python3 scripts/validate_hook_surfaces.py --registry contracts/hook_registry.v1.json
 
+  third-party-compliance:
+    name: third-party compliance check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate third-party JEPA compliance
+        run: python3 scripts/check_third_party_compliance.py
+
   remote-pipeline-dry-run:
     name: remote pipeline dry-run checks
     runs-on: ubuntu-latest

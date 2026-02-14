@@ -25,6 +25,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seeds", default="11", help="Comma-separated seeds")
     parser.add_argument("--steps", type=int, default=120)
     parser.add_argument(
+        "--backend",
+        default="internal_minimal",
+        choices=["internal_minimal", "jepa_inference"],
+        help="Latent substrate backend mode",
+    )
+    parser.add_argument(
+        "--jepa-checkpoint-path",
+        type=Path,
+        default=None,
+        help="Optional local JEPA checkpoint path for jepa_inference backend",
+    )
+    parser.add_argument(
+        "--force-synthetic-frames",
+        action="store_true",
+        help="Force deterministic synthetic-frame fallback for jepa_inference smoke mode",
+    )
+    parser.add_argument(
+        "--require-real-jepa",
+        action="store_true",
+        help="Fail if jepa_inference cannot load a real checkpoint and falls back to synthetic mode",
+    )
+    parser.add_argument(
         "--condition-mode",
         default="supports_only",
         choices=["supports_only", "all_conditions"],
@@ -49,25 +71,42 @@ def main() -> int:
     args = parse_args()
     seeds = parse_seeds(args.seeds)
     profiles = get_profiles(args.profile)
+    if args.require_real_jepa and args.backend != "jepa_inference":
+        print("FAIL: --require-real-jepa requires --backend jepa_inference")
+        return 1
+    if args.require_real_jepa and args.force_synthetic_frames:
+        print("FAIL: --require-real-jepa is incompatible with --force-synthetic-frames")
+        return 1
 
     emitted = 0
     for profile in profiles:
         conditions = choose_conditions(profile, args.condition_mode)
         for condition_name in conditions:
             for seed in seeds:
-                result = execute_profile_condition(
-                    experiment_type=profile.experiment_type,
-                    condition_name=condition_name,
-                    seed=seed,
-                    steps=args.steps,
-                    runs_root=args.runs_root,
-                    timestamp_utc=args.timestamp_utc,
-                    write=True,
-                )
+                try:
+                    result = execute_profile_condition(
+                        experiment_type=profile.experiment_type,
+                        condition_name=condition_name,
+                        seed=seed,
+                        backend=args.backend,
+                        steps=args.steps,
+                        runs_root=args.runs_root,
+                        timestamp_utc=args.timestamp_utc,
+                        jepa_checkpoint_path=args.jepa_checkpoint_path,
+                        force_synthetic_frames=args.force_synthetic_frames,
+                        require_real_jepa=args.require_real_jepa,
+                        write=True,
+                    )
+                except RuntimeError as exc:
+                    print(
+                        f"FAIL: profile={profile.experiment_type} condition={condition_name} "
+                        f"seed={seed} backend={args.backend}: {exc}"
+                    )
+                    return 1
                 emitted += 1
                 print(
                     f"emitted profile={result.experiment_type} condition={result.condition_name} "
-                    f"seed={result.seed} run_id={result.run_id} status={result.status}"
+                    f"seed={result.seed} backend={result.backend} run_id={result.run_id} status={result.status}"
                 )
 
     print(f"PASS: batch completed emitted_runs={emitted}")
