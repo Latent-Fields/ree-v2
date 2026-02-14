@@ -202,10 +202,25 @@ def validate_claim_summary(section_body: str) -> None:
         raise ValidationError("Claim Summary must contain at least one claim row")
 
 
-def validate_open_blockers(section_body: str) -> None:
-    bullets = [line.strip() for line in section_body.splitlines() if line.strip().startswith("- ")]
+def validate_open_blockers(section_body: str, local_watch_fields: dict[str, str]) -> None:
+    bullets = [line.strip()[2:] for line in section_body.splitlines() if line.strip().startswith("- ")]
     if not bullets:
         raise ValidationError("Open Blockers must include at least one bullet")
+
+    verified_raw = local_watch_fields.get("jepa_real_verified_runs", "").strip().strip("`")
+    try:
+        verified_count = int(verified_raw)
+    except ValueError as exc:
+        raise ValidationError(
+            "Local Compute Options Watch jepa_real_verified_runs must be an integer"
+        ) from exc
+
+    if verified_count <= 0:
+        has_real_jepa_blocker = any("real jepa" in bullet.lower() and "block" in bullet.lower() for bullet in bullets)
+        if not has_real_jepa_blocker:
+            raise ValidationError(
+                "Open Blockers must include an explicit real JEPA blocker when jepa_real_verified_runs is 0"
+            )
 
 
 def validate_local_watch(section_body: str) -> None:
@@ -230,10 +245,11 @@ def validate(text: str) -> None:
 
     validate_required_bullets("Metadata", sections["Metadata"], METADATA_KEYS)
     validate_required_bullets("Contract Sync", sections["Contract Sync"], CONTRACT_KEYS)
+    local_watch_fields = parse_bullets(sections["Local Compute Options Watch"])
     validate_ci_gates(sections["CI Gates"])
     validate_run_inventory(sections["Run-Pack Inventory"])
     validate_claim_summary(sections["Claim Summary"])
-    validate_open_blockers(sections["Open Blockers"])
+    validate_open_blockers(sections["Open Blockers"], local_watch_fields)
     validate_local_watch(sections["Local Compute Options Watch"])
 
 

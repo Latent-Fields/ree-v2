@@ -351,6 +351,26 @@ def jepa_run_snapshot(rows: list[dict[str, str]]) -> dict[str, str]:
     }
 
 
+def build_open_blockers(ci_gates: list[tuple[str, str, str]], jepa_watch: dict[str, str]) -> list[str]:
+    blockers: list[str] = []
+    failed = [gate for gate, status, _evidence in ci_gates if status == "FAIL"]
+    if failed:
+        blockers.append("CI gate failures require remediation before governance handoff: " + ", ".join(failed))
+        blockers.append("Re-run weekly handoff generation after fixes to update gate evidence.")
+
+    real_verified = int(jepa_watch.get("jepa_real_verified_runs", "0"))
+    if real_verified <= 0:
+        fallback_runs = jepa_watch.get("jepa_synthetic_fallback_runs", "0")
+        blockers.append(
+            "Real JEPA backend evidence remains blocked: no verified real-checkpoint runs; "
+            f"current JEPA fallback-only runs={fallback_runs}."
+        )
+
+    if not blockers:
+        return ["none"]
+    return blockers
+
+
 def local_options_watch() -> dict[str, str]:
     path = REPO_ROOT / "docs" / "ops" / "local_compute_options.md"
     if path.exists():
@@ -533,15 +553,7 @@ def main() -> int:
     run_rows = collect_run_inventory()
     claim_rows = build_claim_summary(run_rows)
     jepa_watch = jepa_run_snapshot(run_rows)
-
-    failed = [gate for gate, status, _evidence in ci_gates if status == "FAIL"]
-    if failed:
-        blockers = [
-            "CI gate failures require remediation before governance handoff: " + ", ".join(failed),
-            "Re-run weekly handoff generation after fixes to update gate evidence.",
-        ]
-    else:
-        blockers = ["none"]
+    blockers = build_open_blockers(ci_gates, jepa_watch)
 
     local_watch = local_options_watch()
 
