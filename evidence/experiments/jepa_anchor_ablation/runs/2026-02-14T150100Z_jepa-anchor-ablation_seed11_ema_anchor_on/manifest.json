@@ -6,7 +6,7 @@
   "timestamp_utc": "2026-02-14T15:01:00Z",
   "source_repo": {
     "name": "ree-v2",
-    "commit": "unknown",
+    "commit": "d1b5e54dbefc355e967c3dcd8f134dc5b3afdfc3",
     "branch": "bootstrap"
   },
   "runner": {
@@ -24,7 +24,7 @@
     ],
     "config_hash": "6bb1ee2dd008",
     "jepa_source_mode": "internal_minimal_impl",
-    "jepa_source_commit": "reference-only-bootstrap-2026-02-14",
+    "jepa_source_commit": "internal_snapshot_sha256:0241895c20456d097606d9329fef27f50427cf42c208ac87eb983a52a545bdd5",
     "jepa_patch_set_hash": "664e1467b722c3ca"
   },
   "stop_criteria_version": "stop_criteria/v1",

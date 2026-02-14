@@ -2,11 +2,20 @@
   "schema_version": "jepa_sources_lock/v1",
   "source_mode": "internal_minimal_impl",
   "upstream_repo_url": "https://github.com/facebookresearch/vjepa2",
-  "upstream_commit": "reference-only-bootstrap-2026-02-14",
+  "upstream_commit": "internal_snapshot_sha256:0241895c20456d097606d9329fef27f50427cf42c208ac87eb983a52a545bdd5",
   "license_id": "CC-BY-NC-4.0",
   "patch_set": [
     "bootstrap_internal_adapter_stub"
   ],
   "compatibility_target": "IMPL-022",
-  "last_verified_utc": "2026-02-14T00:00:00Z"
+  "last_verified_utc": "2026-02-14T00:00:00Z",
+  "upstream_commit_rationale": "source_mode=internal_minimal_impl; immutable snapshot hash over local JEPA adapter/substrate files pins provenance when no single external upstream commit is mirrored directly.",
+  "snapshot_inputs": [
+    "src/ree_v2/latent_substrate/encoder.py",
+    "src/ree_v2/latent_substrate/predictor.py",
+    "src/ree_v2/latent_substrate/target_anchor.py",
+    "src/ree_v2/sensor_adapter/adapter.py",
+    "src/ree_v2/signal_export/adapter_signals.py",
+    "src/ree_v2/signal_export/metrics_export.py"
+  ]
 }

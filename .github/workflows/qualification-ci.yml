@@ -50,3 +50,24 @@ jobs:
           python-version: '3.11'
       - name: Validate hook surfaces
         run: python3 scripts/validate_hook_surfaces.py --registry contracts/hook_registry.v1.json
+
+  remote-pipeline-dry-run:
+    name: remote pipeline dry-run checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prepare dirs
+        run: mkdir -p jobs/outgoing jobs/completed
+      - name: Estimate run resources
+        run: python3 scripts/estimate_run_resources.py --profile all --machine macbook_air_m2_2022
+      - name: Build remote job specs
+        run: python3 scripts/build_remote_job_spec.py --profile all
+      - name: Submit remote jobs dry-run
+        run: python3 scripts/submit_remote_job.py --job-spec-dir jobs/outgoing --dry-run
+      - name: Pull remote results dry-run
+        run: python3 scripts/pull_remote_results.py --job-run-dir jobs/completed --runs-root evidence/experiments --dry-run
