@@ -3,8 +3,8 @@
 ## Metadata
 - week_of_utc: `2026-02-09`
 - producer_repo: `ree-v2`
-- producer_commit: `ade858618dd1b179cafe3333e93ae8c00fd81db8`
-- generated_utc: `2026-02-14T16:12:53Z`
+- producer_commit: `c0645f8464f707f39ab6cb9a8d6034a8285fb375`
+- generated_utc: `2026-02-14T16:14:53Z`
 
 ## Contract Sync
 - ree_assembly_repo: `REE_assembly`
@@ -21,7 +21,7 @@
 | schema_validation | PASS | `python3 scripts/validate_experiment_pack.py --runs-root evidence/experiments` :: PASS: validated 4 run(s), schemas, adapter files, and contract lock hashes |
 | seed_determinism | PASS | `python3 scripts/check_seed_determinism.py --profile all --max-abs-delta 1e-6` :: checked commit_dual_error_channels/single_error_stream seed=11 max_abs_delta=0 |
 | hook_surface_coverage | PASS | `python3 scripts/validate_hook_surfaces.py --registry contracts/hook_registry.v1.json` :: PASS: hook surface contract verified for HK-001..HK-006 and HK-101..HK-104 |
-| remote_export_import | PASS | `python3 scripts/estimate_run_resources.py --profile all --machine macbook_air_m2_2022` :: experiment_type	condition	estimated_runtime_minutes	execution_mode	offload_reason ; `python3 scripts/build_remote_job_spec.py --profile all --out-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_z42ho3lr/outgoing` :: wrote /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_z42ho3lr/outgoing/commit_dual_error_channels__single_error_stream.json ; `python3 scripts/submit_remote_job.py --job-spec-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_z42ho3lr/outgoing --dry-run` :: dry-run submit OK: commit_dual_error_channels__pre_post_split_streams.json -> backend=<not configured> ; `python3 scripts/pull_remote_results.py --job-run-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_z42ho3lr/completed --runs-root evidence/experiments --dry-run` :: PASS: no completed remote result bundles in /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_z42ho3lr/completed |
+| remote_export_import | PASS | `python3 scripts/estimate_run_resources.py --profile all --machine macbook_air_m2_2022` :: experiment_type	condition	estimated_runtime_minutes	execution_mode	offload_reason ; `python3 scripts/build_remote_job_spec.py --profile all --out-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_yh3sgzad/outgoing` :: wrote /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_yh3sgzad/outgoing/commit_dual_error_channels__single_error_stream.json ; `python3 scripts/submit_remote_job.py --job-spec-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_yh3sgzad/outgoing --dry-run` :: dry-run submit OK: commit_dual_error_channels__pre_post_split_streams.json -> backend=<not configured> ; `python3 scripts/pull_remote_results.py --job-run-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_yh3sgzad/completed --runs-root evidence/experiments --dry-run` :: PASS: no completed remote result bundles in /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_yh3sgzad/completed |
 
 ## Run-Pack Inventory
 | experiment_type | run_id | seed | condition_or_scenario | status | evidence_direction | claim_ids_tested | failure_signatures | execution_mode | compute_backend | runtime_minutes | pack_path |
