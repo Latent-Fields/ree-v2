@@ -1,0 +1,34 @@
+{
+  "schema_version": "ree_assembly_contract_lock/v1",
+  "generated_utc": "2026-02-14T14:43:22Z",
+  "source_repo": {
+    "name": "REE_assembly",
+    "path": "/Users/dgolden/Documents/GitHub/REE_assembly"
+  },
+  "artifacts": [
+    {
+      "id": "manifest_schema",
+      "local_path": "contracts/schemas/v1/manifest.schema.json",
+      "source_path": "/Users/dgolden/Documents/GitHub/REE_assembly/evidence/experiments/schemas/v1/manifest.schema.json",
+      "sha256": "ddbfeac9f4c75e8153f7c4c1bcfeebb46b5da1877ab0ffc6b548e020d4a220d3"
+    },
+    {
+      "id": "metrics_schema",
+      "local_path": "contracts/schemas/v1/metrics.schema.json",
+      "source_path": "/Users/dgolden/Documents/GitHub/REE_assembly/evidence/experiments/schemas/v1/metrics.schema.json",
+      "sha256": "d6eee5a1496f681c2ffc9244116ec0598ad961f891ac0a31dbc197f8be489db2"
+    },
+    {
+      "id": "jepa_adapter_signals_schema",
+      "local_path": "contracts/schemas/v1/jepa_adapter_signals.v1.json",
+      "source_path": "/Users/dgolden/Documents/GitHub/REE_assembly/evidence/experiments/schemas/v1/jepa_adapter_signals.v1.json",
+      "sha256": "1a722cbe38e188afe2c600827b333c12848583aa881a42caa52f2901f448bdf2"
+    },
+    {
+      "id": "hook_registry",
+      "local_path": "contracts/hook_registry.v1.json",
+      "source_path": "/Users/dgolden/Documents/GitHub/REE_assembly/docs/architecture/hook_registry.v1.json",
+      "sha256": "2fcd94d5a55f96a2a0bc2414bfd07959e995300a8d33c48e4c3a2d916d3bf7a7"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": "jepa_sources_lock/v1",
+  "source_mode": "internal_minimal_impl",
+  "upstream_repo_url": "https://github.com/facebookresearch/vjepa2",
+  "upstream_commit": "reference-only-bootstrap-2026-02-14",
+  "license_id": "CC-BY-NC-4.0",
+  "patch_set": [
+    "bootstrap_internal_adapter_stub"
+  ],
+  "compatibility_target": "IMPL-022",
+  "last_verified_utc": "2026-02-14T00:00:00Z"
+}
