@@ -495,10 +495,7 @@ def main() -> int:
             "Re-run weekly handoff generation after fixes to update gate evidence.",
         ]
     else:
-        blockers = [
-            "No blocking CI gate failures in this handoff cycle.",
-            "Continue monitoring remote backend readiness for production (dry-run only in bootstrap).",
-        ]
+        blockers = ["none"]
 
     local_watch = local_options_watch()
 
