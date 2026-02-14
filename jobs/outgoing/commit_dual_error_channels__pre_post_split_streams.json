@@ -1,7 +1,7 @@
 {
   "schema_version": "ree_remote_job_spec/v1",
   "job_id": "commit_dual_error_channels__pre_post_split_streams",
-  "created_utc": "2026-02-14T15:11:33Z",
+  "created_utc": "2026-02-14T16:10:18Z",
   "experiment_type": "commit_dual_error_channels",
   "condition": "pre_post_split_streams",
   "seeds": [
@@ -15,7 +15,7 @@
     "seeds_per_condition>2",
     "memory>8.0GB"
   ],
-  "source_commit": "294fb0ae679471cde28b9fdb45d422622bd8d0db",
+  "source_commit": "4647b2e9c13572cd21d1cd3e6fb9a65b818b15da",
   "contract_lock_sha256": "421f756451519e768093161825bf8035231266260e11ee00b3e08caea3b3420e",
   "jepa_source_lock_sha256": "bac50d4cfc5f32513639ce4f2833ad978ecae789388f30f2a050a540f4258f07",
   "results_destination": "evidence/experiments/commit_dual_error_channels/runs"
