@@ -1,7 +1,7 @@
 {
   "schema_version": "ree_remote_job_spec/v1",
   "job_id": "jepa_anchor_ablation__ema_anchor_off",
-  "created_utc": "2026-02-15T10:10:04Z",
+  "created_utc": "2026-02-15T10:16:49Z",
   "experiment_type": "jepa_anchor_ablation",
   "condition": "ema_anchor_off",
   "seeds": [
@@ -15,7 +15,7 @@
     "seeds_per_condition>2",
     "memory>8.0GB"
   ],
-  "source_commit": "5d146fed8b973e5d602374fa05285430ca5544e5",
+  "source_commit": "03c825ddeb9882c17feadc17ed58a099f20313cd",
   "contract_lock_sha256": "421f756451519e768093161825bf8035231266260e11ee00b3e08caea3b3420e",
   "jepa_source_lock_sha256": "e13ba0e296578b26f4d2d2ebd3e6b3ed3ca01f4ddeb5d2ec95d6d5185e47b5b3",
   "results_destination": "evidence/experiments/jepa_anchor_ablation/runs"
