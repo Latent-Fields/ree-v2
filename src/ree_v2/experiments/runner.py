@@ -12,7 +12,11 @@ from pathlib import Path
 from typing import Any
 
 from ree_v2.envs import run_toy_rollout
-from ree_v2.experiments.profiles import evaluate_failure_signatures, get_profile
+from ree_v2.experiments.profiles import (
+    evaluate_failure_signatures,
+    get_profile,
+    resolve_execution_experiment_type,
+)
 from ree_v2.hooks.emitter import emit_planned_stub_hooks, emit_v2_hooks
 from ree_v2.latent_substrate.encoder import LatentEncoder
 from ree_v2.latent_substrate.jepa_inference_backend import JEPAInferenceBackend
@@ -660,6 +664,7 @@ def execute_profile_condition(
 ) -> RunExecutionResult:
     profile = get_profile(experiment_type)
     condition = next(item for item in profile.conditions if item.name == condition_name)
+    canonical_experiment_type = resolve_execution_experiment_type(experiment_type)
 
     ts = _parse_timestamp_utc(timestamp_utc)
     timestamp_str = ts.isoformat().replace("+00:00", "Z")
@@ -668,8 +673,8 @@ def execute_profile_condition(
     if run_id is None:
         run_id = f"{run_stamp}_{experiment_type.replace('_', '-')}_seed{seed}_{condition_name}_toyenv_{backend}"
 
-    rollout = run_toy_rollout(experiment_type, condition_name, seed, steps=steps)
-    metrics_values = _compute_metrics(experiment_type, rollout)
+    rollout = run_toy_rollout(canonical_experiment_type, condition_name, seed, steps=steps)
+    metrics_values = _compute_metrics(canonical_experiment_type, rollout)
 
     lock = _jepa_lock()
     patch_hash = _stable_hash(lock.get("patch_set", []))[:16]
@@ -741,6 +746,7 @@ def execute_profile_condition(
     config_hash = _stable_hash(
         {
             "experiment_type": experiment_type,
+            "canonical_experiment_type": canonical_experiment_type,
             "condition": condition_name,
             "seed": seed,
             "steps": steps,

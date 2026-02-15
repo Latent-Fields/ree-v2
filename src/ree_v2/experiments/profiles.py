@@ -401,6 +401,61 @@ PROFILE_CATALOG: dict[str, ClaimProfile] = {
     ),
 }
 
+CLAIM_PROBE_ALIAS_TO_BASE: dict[str, str] = {
+    "claim_probe_mech_056": "trajectory_integrity",
+    "claim_probe_mech_058": "jepa_anchor_ablation",
+    "claim_probe_mech_059": "jepa_uncertainty_channels",
+    "claim_probe_mech_060": "commit_dual_error_channels",
+    "claim_probe_mech_062": "tri_loop_arbitration_policy",
+    "claim_probe_q_017": "control_axis_ablation",
+}
+
+
+def _add_claim_probe_aliases(catalog: dict[str, ClaimProfile]) -> None:
+    """Register claim_probe_* aliases that reuse validated core profiles.
+
+    This keeps proposal-facing claim probe experiment types executable while
+    preserving the same metric contracts and failure signatures as the base
+    profiles.
+    """
+
+    alias_specs = [
+        ("claim_probe_mech_056", "MECH-056"),
+        ("claim_probe_mech_058", "MECH-058"),
+        ("claim_probe_mech_059", "MECH-059"),
+        ("claim_probe_mech_060", "MECH-060"),
+        ("claim_probe_mech_062", "MECH-062"),
+        ("claim_probe_q_017", "Q-017"),
+    ]
+
+    for alias_name, claim_id in alias_specs:
+        base_name = CLAIM_PROBE_ALIAS_TO_BASE[alias_name]
+        base = catalog[base_name]
+        catalog[alias_name] = ClaimProfile(
+            experiment_type=alias_name,
+            claim_id=claim_id,
+            evidence_class=base.evidence_class,
+            required_metric_keys=base.required_metric_keys,
+            default_seeds=base.default_seeds,
+            conditions=base.conditions,
+            failure_rules=base.failure_rules,
+        )
+
+
+_add_claim_probe_aliases(PROFILE_CATALOG)
+
+
+def resolve_execution_experiment_type(experiment_type: str) -> str:
+    """Resolve proposal-facing aliases to their executable base profile."""
+
+    if experiment_type in CLAIM_PROBE_ALIAS_TO_BASE:
+        return CLAIM_PROBE_ALIAS_TO_BASE[experiment_type]
+    if experiment_type.startswith("claim_probe_"):
+        claim_id = _claim_id_from_probe_experiment_type(experiment_type)
+        if claim_id:
+            return _infer_base_profile_from_claim_id(claim_id)
+    return experiment_type
+
 
 def get_profiles(profile: str = "all") -> list[ClaimProfile]:
     if profile == "all":
@@ -409,10 +464,58 @@ def get_profiles(profile: str = "all") -> list[ClaimProfile]:
 
 
 def get_profile(experiment_type: str) -> ClaimProfile:
+    if experiment_type.startswith("claim_probe_") and experiment_type not in PROFILE_CATALOG:
+        claim_id = _claim_id_from_probe_experiment_type(experiment_type)
+        if claim_id:
+            base_name = _infer_base_profile_from_claim_id(claim_id)
+            base = PROFILE_CATALOG[base_name]
+            PROFILE_CATALOG[experiment_type] = ClaimProfile(
+                experiment_type=experiment_type,
+                claim_id=claim_id,
+                evidence_class=base.evidence_class,
+                required_metric_keys=base.required_metric_keys,
+                default_seeds=base.default_seeds,
+                conditions=base.conditions,
+                failure_rules=base.failure_rules,
+            )
+            CLAIM_PROBE_ALIAS_TO_BASE[experiment_type] = base_name
     if experiment_type not in PROFILE_CATALOG:
         known = ", ".join(sorted(PROFILE_CATALOG))
         raise KeyError(f"Unknown profile '{experiment_type}'. Known profiles: {known}")
     return PROFILE_CATALOG[experiment_type]
+
+
+def _claim_id_from_probe_experiment_type(experiment_type: str) -> str | None:
+    if not experiment_type.startswith("claim_probe_"):
+        return None
+    token = experiment_type[len("claim_probe_") :].strip()
+    parts = [p for p in token.split("_") if p]
+    if len(parts) < 2:
+        return None
+    prefix = parts[0].upper()
+    number = parts[1]
+    if not number.isdigit():
+        return None
+    return f"{prefix}-{number.zfill(3)}"
+
+
+def _infer_base_profile_from_claim_id(claim_id: str) -> str:
+    explicit: dict[str, str] = {
+        "MECH-056": "trajectory_integrity",
+        "MECH-058": "jepa_anchor_ablation",
+        "MECH-059": "jepa_uncertainty_channels",
+        "MECH-060": "commit_dual_error_channels",
+        "MECH-062": "tri_loop_arbitration_policy",
+        "Q-016": "tri_loop_arbitration_policy",
+        "Q-017": "control_axis_ablation",
+    }
+    if claim_id in explicit:
+        return explicit[claim_id]
+    if claim_id in {"MECH-053", "MECH-054", "MECH-063", "ARC-005"}:
+        return "control_axis_ablation"
+    if claim_id in {"MECH-061", "IMPL-022", "ARC-003"}:
+        return "commit_dual_error_channels"
+    return "trajectory_integrity"
 
 
 def _seeded_jitter(
