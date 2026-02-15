@@ -2,7 +2,7 @@
   "schema_version": "experiment_pack/v1",
   "experiment_type": "commit_dual_error_channels",
   "run_id": "2026-02-14T165000Z_commit-dual-error-channels_seed11_pre_post_split_streams_toyenv",
-  "status": "PASS",
+  "status": "FAIL",
   "timestamp_utc": "2026-02-14T16:50:00Z",
   "source_repo": {
     "name": "ree-v2",
@@ -35,10 +35,13 @@
   ],
   "evidence_class": "ablation",
   "evidence_direction": "supports",
-  "failure_signatures": [],
+  "failure_signatures": [
+    "mech060:commitment_reversal_spike"
+  ],
   "artifacts": {
     "metrics_path": "metrics.json",
     "summary_path": "summary.md",
-    "adapter_signals_path": "jepa_adapter_signals.v1.json"
+    "adapter_signals_path": "jepa_adapter_signals.v1.json",
+    "traces_dir": "traces"
   }
 }

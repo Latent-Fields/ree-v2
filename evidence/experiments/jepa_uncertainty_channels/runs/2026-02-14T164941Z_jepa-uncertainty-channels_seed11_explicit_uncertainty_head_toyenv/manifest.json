@@ -2,7 +2,7 @@
   "schema_version": "experiment_pack/v1",
   "experiment_type": "jepa_uncertainty_channels",
   "run_id": "2026-02-14T164941Z_jepa-uncertainty-channels_seed11_explicit_uncertainty_head_toyenv",
-  "status": "PASS",
+  "status": "FAIL",
   "timestamp_utc": "2026-02-14T16:49:41Z",
   "source_repo": {
     "name": "ree-v2",

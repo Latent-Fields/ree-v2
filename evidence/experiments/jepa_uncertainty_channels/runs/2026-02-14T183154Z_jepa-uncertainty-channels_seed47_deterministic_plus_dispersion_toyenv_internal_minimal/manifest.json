@@ -2,7 +2,7 @@
   "schema_version": "experiment_pack/v1",
   "experiment_type": "jepa_uncertainty_channels",
   "run_id": "2026-02-14T183154Z_jepa-uncertainty-channels_seed47_deterministic_plus_dispersion_toyenv_internal_minimal",
-  "status": "PASS",
+  "status": "FAIL",
   "timestamp_utc": "2026-02-14T18:31:54Z",
   "source_repo": {
     "name": "ree-v2",
@@ -49,8 +49,8 @@
   "evidence_class": "simulation",
   "evidence_direction": "mixed",
   "failure_signatures": [
-    "mech059:uncertainty_metric_gaming_detected",
-    "mech059:abstention_reliability_collapse"
+    "mech059:abstention_reliability_collapse",
+    "mech059:uncertainty_metric_gaming_detected"
   ],
   "artifacts": {
     "metrics_path": "metrics.json",

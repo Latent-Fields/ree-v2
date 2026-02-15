@@ -2,7 +2,7 @@
   "schema_version": "experiment_pack/v1",
   "experiment_type": "trajectory_integrity",
   "run_id": "2026-02-14T183154Z_trajectory-integrity_seed47_trajectory_first_enabled_toyenv_internal_minimal",
-  "status": "PASS",
+  "status": "FAIL",
   "timestamp_utc": "2026-02-14T18:31:54Z",
   "source_repo": {
     "name": "ree-v2",
