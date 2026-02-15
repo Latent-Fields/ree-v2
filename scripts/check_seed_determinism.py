@@ -33,6 +33,30 @@ def stream_presence(include_uncertainty: bool, include_action_token: bool) -> di
     }
 
 
+def stream_presence_issues(
+    observed: dict[str, bool],
+    *,
+    include_uncertainty: bool,
+    include_action_token: bool,
+) -> list[str]:
+    expected = stream_presence(include_uncertainty, include_action_token)
+    issues: list[str] = []
+
+    for key, expected_value in expected.items():
+        if observed.get(key) != expected_value:
+            issues.append(f"required stream_presence key '{key}' expected={expected_value} got={observed.get(key)}")
+
+    for optional_key in (
+        "trace_commit_boundary_token",
+        "trace_tri_loop_gate",
+        "trace_control_axis_telemetry",
+    ):
+        if optional_key in observed and not isinstance(observed[optional_key], bool):
+            issues.append(f"optional stream_presence key '{optional_key}' must be boolean when present")
+
+    return issues
+
+
 def main() -> int:
     args = parse_args()
     profiles = get_profiles(args.profile)
@@ -78,11 +102,13 @@ def main() -> int:
 
             first_stream = first_result.adapter_signals.get("stream_presence", {})
             second_stream = second_result.adapter_signals.get("stream_presence", {})
-            expected_stream = stream_presence(condition.include_uncertainty, condition.include_action_token)
-            if first_stream != expected_stream:
-                issues.append(
-                    f"{profile.experiment_type}/{condition.name}: stream presence mismatch expected={expected_stream} got={first_stream}"
-                )
+            stream_issues = stream_presence_issues(
+                first_stream,
+                include_uncertainty=condition.include_uncertainty,
+                include_action_token=condition.include_action_token,
+            )
+            for issue in stream_issues:
+                issues.append(f"{profile.experiment_type}/{condition.name}: {issue}")
             if first_stream != second_stream:
                 issues.append(f"{profile.experiment_type}/{condition.name}: stream presence drift detected")
 

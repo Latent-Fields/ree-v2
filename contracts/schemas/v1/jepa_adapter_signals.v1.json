@@ -71,6 +71,15 @@
         },
         "trace_action_token": {
           "type": "boolean"
+        },
+        "trace_commit_boundary_token": {
+          "type": "boolean"
+        },
+        "trace_tri_loop_gate": {
+          "type": "boolean"
+        },
+        "trace_control_axis_telemetry": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -124,6 +133,16 @@
           "maximum": 1
         },
         "precision_input_completeness_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "commit_boundary_join_coverage_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "tri_loop_trace_coverage_rate": {
           "type": "number",
           "minimum": 0,
           "maximum": 1

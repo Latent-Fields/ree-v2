@@ -81,6 +81,10 @@ Required core fields:
 - `stream_presence`
   - must include `z_t=true`, `z_hat=true`, `pe_latent=true`, `trace_context_mask_ids=true`
   - includes booleans for `uncertainty_latent`, `trace_action_token`
+  - may include optional bridge booleans:
+    - `trace_commit_boundary_token`
+    - `trace_tri_loop_gate`
+    - `trace_control_axis_telemetry`
 - `pe_latent_fields`: must contain at least `mean` and `p95`
 - `uncertainty_estimator`: one of `none|dispersion|ensemble|head`
 - `signal_metrics` with at minimum:
@@ -88,7 +92,37 @@ Required core fields:
   - `latent_prediction_error_p95`
   - `latent_residual_coverage_rate` (0..1)
   - `precision_input_completeness_rate` (0..1)
+  - optional bridge coverage metrics:
+    - `commit_boundary_join_coverage_rate` (0..1)
+    - `tri_loop_trace_coverage_rate` (0..1)
   - plus `latent_uncertainty_calibration_error` if `uncertainty_latent=true`
+
+## Required Hook Surface Coverage (v2)
+
+`contracts/hook_registry.v1.json` and emitted runtime payloads must cover:
+
+- `HK-001` latent_state_export
+- `HK-002` latent_future_export
+- `HK-003` latent_prediction_error_export
+- `HK-004` latent_uncertainty_export (conditional)
+- `HK-005` context_mask_trace_export
+- `HK-006` action_token_trace_export (conditional)
+- `HK-007` commit_boundary_token_export with:
+  - `commit_boundary.commit_id`
+  - `commit_boundary.trajectory_id`
+  - `commit_boundary.issued_at_step`
+  - `commit_boundary.ttl_steps`
+  - `commit_boundary.mode_snapshot`
+- `HK-008` tri_loop_gate_trace_export with:
+  - `trace.gate_motor`
+  - `trace.gate_cognitive_set`
+  - `trace.gate_motivational`
+  - `trace.gate_arbitration_policy`
+  - `trace.gate_conflict_flag`
+- `HK-009` control_axis_telemetry_export with:
+  - `control_axes.tonic`
+  - `control_axes.phasic`
+  - `control_axes.readout_weights`
 
 Validation behavior:
 

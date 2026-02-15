@@ -30,6 +30,13 @@ def build_adapter_signals(
     else:
         uncertainty_estimator = "none"
 
+    if "commit_boundary_join_coverage_rate" in metrics_values:
+        signal_metrics["commit_boundary_join_coverage_rate"] = float(
+            metrics_values["commit_boundary_join_coverage_rate"]
+        )
+    if "tri_loop_trace_coverage_rate" in metrics_values:
+        signal_metrics["tri_loop_trace_coverage_rate"] = float(metrics_values["tri_loop_trace_coverage_rate"])
+
     return {
         "schema_version": "jepa_adapter_signals/v1",
         "experiment_type": experiment_type,
@@ -45,6 +52,9 @@ def build_adapter_signals(
             "uncertainty_latent": include_uncertainty,
             "trace_context_mask_ids": True,
             "trace_action_token": include_action_token,
+            "trace_commit_boundary_token": True,
+            "trace_tri_loop_gate": True,
+            "trace_control_axis_telemetry": True,
         },
         "pe_latent_fields": ["mean", "p95", "by_mask"],
         "uncertainty_estimator": uncertainty_estimator,

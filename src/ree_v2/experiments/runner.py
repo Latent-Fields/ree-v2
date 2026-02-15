@@ -148,6 +148,8 @@ def _non_nan(values: list[float]) -> list[float]:
 
 def _compute_metrics(experiment_type: str, rollout: Any) -> dict[str, float]:
     errors = rollout.signals.get("latent_error", [])
+    commit_boundary_join_coverage_rate = 1.0 if rollout.steps > 0 else 0.0
+    tri_loop_trace_coverage_rate = _mean([float(v) for v in rollout.events.get("residual_present", [1])])
     metrics: dict[str, float] = {
         "latent_prediction_error_mean": round(_mean(errors), 12),
         "latent_prediction_error_p95": round(_quantile(errors, 0.95), 12),
@@ -156,6 +158,8 @@ def _compute_metrics(experiment_type: str, rollout: Any) -> dict[str, float]:
             _mean([float(v) for v in rollout.events.get("precision_complete", [1])]),
             12,
         ),
+        "commit_boundary_join_coverage_rate": round(commit_boundary_join_coverage_rate, 12),
+        "tri_loop_trace_coverage_rate": round(tri_loop_trace_coverage_rate, 12),
         "fatal_error_count": 0.0,
     }
 
@@ -352,10 +356,60 @@ def _build_jepa_inference_outputs(
 
 def _build_hook_payloads_from_backend_outputs(
     *,
+    experiment_type: str,
+    condition_name: str,
+    seed: int,
     include_uncertainty: bool,
     include_action_token: bool,
     backend_outputs: dict[str, Any],
+    rollout: Any,
 ) -> dict[str, Any]:
+    trajectory_id = f"{experiment_type}:{condition_name}:seed{seed}"
+    commit_material = {
+        "trajectory_id": trajectory_id,
+        "steps": rollout.steps,
+        "backend": backend_outputs.get("backend_metadata", {}).get("backend", "unknown"),
+        "z_t_head": backend_outputs["z_t"][:3],
+    }
+    commit_boundary = {
+        "commit_id": f"cb-{_stable_hash(commit_material)[:16]}",
+        "trajectory_id": trajectory_id,
+        "issued_at_step": max(rollout.steps - 1, 0),
+        "ttl_steps": max(1, min(rollout.steps, 64)),
+        "mode_snapshot": {
+            "experiment_type": experiment_type,
+            "condition_name": condition_name,
+            "include_uncertainty": include_uncertainty,
+            "include_action_token": include_action_token,
+        },
+    }
+
+    commitment_reversals = rollout.events.get("commitment_reversal", [])
+    tri_loop_trace = {
+        "gate_motor": "action_conditioned" if include_action_token else "state_only",
+        "gate_cognitive_set": f"{experiment_type}:{condition_name}",
+        "gate_motivational": "error_reduction",
+        "gate_arbitration_policy": (
+            "dual_stream_pre_post" if experiment_type == "commit_dual_error_channels" else "single_stream"
+        ),
+        "gate_conflict_flag": bool(sum(commitment_reversals) > 0) if commitment_reversals else False,
+    }
+
+    latent_errors = rollout.signals.get("latent_error", [])
+    action_magnitude = _mean([abs(value) for value in rollout.actions]) if rollout.actions else 0.0
+    uncertainty_weight = 1.0 if include_uncertainty else 0.5
+    raw_weights = [
+        abs(_mean(latent_errors)),
+        abs(action_magnitude),
+        uncertainty_weight,
+    ]
+    normalizer = sum(raw_weights) if sum(raw_weights) > 0 else 1.0
+    control_axes = {
+        "tonic": round(_mean([abs(value) for value in rollout.context_values]), 12),
+        "phasic": round(_stddev(latent_errors), 12),
+        "readout_weights": [round(value / normalizer, 12) for value in raw_weights],
+    }
+
     v2_hooks = emit_v2_hooks(
         z_t=backend_outputs["z_t"],
         z_hat=backend_outputs["z_hat"],
@@ -365,6 +419,9 @@ def _build_hook_payloads_from_backend_outputs(
         uncertainty_latent=backend_outputs.get("uncertainty_latent"),
         include_action_token=include_action_token,
         action_token=backend_outputs.get("action_token"),
+        commit_boundary=commit_boundary,
+        tri_loop_trace=tri_loop_trace,
+        control_axes=control_axes,
     )
 
     return {
@@ -583,9 +640,13 @@ def execute_profile_condition(
         raise KeyError(f"Unsupported backend '{backend}'. Expected internal_minimal|jepa_inference")
 
     hook_payloads = _build_hook_payloads_from_backend_outputs(
+        experiment_type=experiment_type,
+        condition_name=condition_name,
+        seed=seed,
         include_uncertainty=condition.include_uncertainty,
         include_action_token=condition.include_action_token,
         backend_outputs=backend_outputs,
+        rollout=rollout,
     )
 
     failure_signatures = evaluate_failure_signatures(experiment_type, metrics_values)

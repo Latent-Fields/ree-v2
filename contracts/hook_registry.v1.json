@@ -134,6 +134,79 @@
       "notes": "Required for action-conditioned runs."
     },
     {
+      "hook_id": "HK-007",
+      "hook_name": "commit_boundary_token_export",
+      "tier": "v2_required",
+      "status": "active",
+      "producer_modules": [
+        "pack_emitter"
+      ],
+      "consumer_modules": [
+        "pack_emitter",
+        "v3_hook_adapter"
+      ],
+      "lifecycle_phase": "post_predict",
+      "payload_contract": "bridge:commit_boundary_token",
+      "key_fields": [
+        "commit_boundary.commit_id",
+        "commit_boundary.trajectory_id",
+        "commit_boundary.issued_at_step",
+        "commit_boundary.ttl_steps",
+        "commit_boundary.mode_snapshot"
+      ],
+      "availability": "always",
+      "stability": "stable",
+      "notes": "Commit-boundary token for pre/post stream joins."
+    },
+    {
+      "hook_id": "HK-008",
+      "hook_name": "tri_loop_gate_trace_export",
+      "tier": "v2_required",
+      "status": "active",
+      "producer_modules": [
+        "pack_emitter"
+      ],
+      "consumer_modules": [
+        "pack_emitter",
+        "v3_hook_adapter"
+      ],
+      "lifecycle_phase": "post_predict",
+      "payload_contract": "bridge:tri_loop_gate_trace",
+      "key_fields": [
+        "trace.gate_motor",
+        "trace.gate_cognitive_set",
+        "trace.gate_motivational",
+        "trace.gate_arbitration_policy",
+        "trace.gate_conflict_flag"
+      ],
+      "availability": "always",
+      "stability": "stable",
+      "notes": "Tri-loop gate trace for arbitration provenance."
+    },
+    {
+      "hook_id": "HK-009",
+      "hook_name": "control_axis_telemetry_export",
+      "tier": "v2_required",
+      "status": "active",
+      "producer_modules": [
+        "pack_emitter"
+      ],
+      "consumer_modules": [
+        "pack_emitter",
+        "v3_hook_adapter"
+      ],
+      "lifecycle_phase": "post_predict",
+      "payload_contract": "bridge:control_axis_telemetry",
+      "key_fields": [
+        "control_axes.tonic",
+        "control_axes.phasic",
+        "control_axes.readout_weights"
+      ],
+      "availability": "always",
+      "stability": "stable",
+      "notes": "Control-axis telemetry for downstream control adapters."
+    },
+    {
       "hook_id": "HK-101",
       "hook_name": "pre_commit_simulation_error_stream",
       "tier": "v3_planned",

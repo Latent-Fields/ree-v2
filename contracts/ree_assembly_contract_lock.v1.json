@@ -1,6 +1,6 @@
 {
   "schema_version": "ree_assembly_contract_lock/v1",
-  "generated_utc": "2026-02-14T14:43:22Z",
+  "generated_utc": "2026-02-15T00:00:00Z",
   "source_repo": {
     "name": "REE_assembly",
     "path": "/Users/dgolden/Documents/GitHub/REE_assembly"
@@ -22,13 +22,13 @@
       "id": "jepa_adapter_signals_schema",
       "local_path": "contracts/schemas/v1/jepa_adapter_signals.v1.json",
       "source_path": "/Users/dgolden/Documents/GitHub/REE_assembly/evidence/experiments/schemas/v1/jepa_adapter_signals.v1.json",
-      "sha256": "1a722cbe38e188afe2c600827b333c12848583aa881a42caa52f2901f448bdf2"
+      "sha256": "33f3eff8729e8390d5356de6d821260ed112c2f77845fb5f11730ebd9f4ec268"
     },
     {
       "id": "hook_registry",
       "local_path": "contracts/hook_registry.v1.json",
       "source_path": "/Users/dgolden/Documents/GitHub/REE_assembly/docs/architecture/hook_registry.v1.json",
-      "sha256": "2fcd94d5a55f96a2a0bc2414bfd07959e995300a8d33c48e4c3a2d916d3bf7a7"
+      "sha256": "cb2bfac0e06f1976f8ee423b0cba9c89946210bfa6c9f044dd8938e79e2fd4a3"
     }
   ]
 }

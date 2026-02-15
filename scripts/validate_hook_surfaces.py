@@ -18,7 +18,7 @@ from ree_v2.latent_substrate.encoder import LatentEncoder
 from ree_v2.latent_substrate.predictor import FastPredictor
 from ree_v2.sensor_adapter.adapter import SensorAdapter
 
-REQUIRED_IDS = [f"HK-00{i}" for i in range(1, 7)]
+REQUIRED_IDS = [f"HK-00{i}" for i in range(1, 10)]
 STUB_IDS = [f"HK-10{i}" for i in range(1, 5)]
 
 
@@ -74,6 +74,25 @@ def main() -> int:
         uncertainty_latent=prediction.get("uncertainty_latent"),
         include_action_token=True,
         action_token=ingress["trace"]["action_token"],
+        commit_boundary={
+            "commit_id": "cb-validate-surface",
+            "trajectory_id": "trajectory-validate-surface",
+            "issued_at_step": 3,
+            "ttl_steps": 8,
+            "mode_snapshot": "validation_mode",
+        },
+        tri_loop_trace={
+            "gate_motor": "action_conditioned",
+            "gate_cognitive_set": "validation_profile",
+            "gate_motivational": "error_reduction",
+            "gate_arbitration_policy": "dual_stream_pre_post",
+            "gate_conflict_flag": False,
+        },
+        control_axes={
+            "tonic": 0.1,
+            "phasic": 0.05,
+            "readout_weights": [0.5, 0.3, 0.2],
+        },
     )
     emitted_stubs = emit_planned_stub_hooks()
 
@@ -106,7 +125,7 @@ def main() -> int:
             print(f" - {issue}")
         return 1
 
-    print("PASS: hook surface contract verified for HK-001..HK-006 and HK-101..HK-104")
+    print("PASS: hook surface contract verified for HK-001..HK-009 and HK-101..HK-104")
     return 0
 
 
