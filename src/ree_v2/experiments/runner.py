@@ -443,8 +443,37 @@ def _checkpoint_verification(
     return payload
 
 
-def _manifest_status(metrics: dict[str, float]) -> str:
-    return "FAIL" if metrics.get("fatal_error_count", 0.0) > 0 else "PASS"
+def _fail_hard_status(metrics: dict[str, float], failure_signatures: list[str]) -> str:
+    if metrics.get("fatal_error_count", 0.0) > 0:
+        return "FAIL"
+    if failure_signatures:
+        return "FAIL"
+    return "PASS"
+
+
+def _effective_evidence_direction(expected_direction: str, status: str) -> str:
+    if status == "FAIL" and expected_direction == "supports":
+        return "weakens"
+    return expected_direction
+
+
+def _channel_isolation_trace(experiment_type: str, rollout: Any) -> dict[str, float] | None:
+    if experiment_type != "commit_dual_error_channels":
+        return None
+
+    pre_signal = rollout.signals.get("pre_signal", [])
+    post_signal = rollout.signals.get("post_signal", [])
+    realized_signal = rollout.signals.get("realized_signal", [])
+    pre_noise = rollout.signals.get("pre_noise", [])
+    coupling_series = rollout.signals.get("channel_coupling", [0.0])
+
+    return {
+        "corr_pre_post": round(_pearson_corr(pre_signal, post_signal), 12),
+        "corr_pre_realized": round(_pearson_corr(pre_signal, realized_signal), 12),
+        "corr_post_realized": round(_pearson_corr(post_signal, realized_signal), 12),
+        "coupling_mean": round(_mean(coupling_series), 12),
+        "pre_noise_std": round(_stddev(pre_noise), 12),
+    }
 
 
 def _summary_text(
@@ -456,6 +485,7 @@ def _summary_text(
     backend: str,
     metrics: dict[str, float],
     failure_signatures: list[str],
+    channel_trace: dict[str, float] | None,
     hook_payloads: dict[str, Any],
     backend_metadata: dict[str, Any],
     checkpoint_verification: dict[str, Any],
@@ -467,25 +497,38 @@ def _summary_text(
         metric_lines.append(f"- {key}: `{metrics[key]}`")
 
     hook_ids = sorted(hook_payloads["required"].keys()) + sorted(hook_payloads["planned_stubs"].keys())
-    return "\n".join(
-        [
-            f"# {experiment_type} run summary",
-            "",
-            f"- condition: `{condition_name}`",
-            f"- seed: `{seed}`",
-            f"- status: `{status}`",
-            f"- backend: `{backend}`",
-            f"- failure_signatures: `{', '.join(failure_signatures) if failure_signatures else 'none'}`",
-            f"- emitted_hooks: `{', '.join(hook_ids)}`",
-            f"- model_source: `{backend_metadata.get('model_source', 'n/a')}`",
-            f"- synthetic_frame_fallback: `{backend_metadata.get('synthetic_frame_fallback', False)}`",
-            f"- checkpoint_verified: `{checkpoint_verification.get('jepa_checkpoint_verified', False)}`",
-            f"- checkpoint_verify_reason: `{checkpoint_verification.get('jepa_checkpoint_verification_reason', 'n/a')}`",
-            "",
-            "## Metrics",
-            *metric_lines,
-        ]
-    )
+    lines = [
+        f"# {experiment_type} run summary",
+        "",
+        f"- condition: `{condition_name}`",
+        f"- seed: `{seed}`",
+        f"- status: `{status}`",
+        f"- backend: `{backend}`",
+        f"- failure_signatures: `{', '.join(failure_signatures) if failure_signatures else 'none'}`",
+        f"- emitted_hooks: `{', '.join(hook_ids)}`",
+        f"- model_source: `{backend_metadata.get('model_source', 'n/a')}`",
+        f"- synthetic_frame_fallback: `{backend_metadata.get('synthetic_frame_fallback', False)}`",
+        f"- checkpoint_verified: `{checkpoint_verification.get('jepa_checkpoint_verified', False)}`",
+        f"- checkpoint_verify_reason: `{checkpoint_verification.get('jepa_checkpoint_verification_reason', 'n/a')}`",
+        "",
+        "## Metrics",
+        *metric_lines,
+    ]
+
+    if channel_trace is not None:
+        lines.extend(
+            [
+                "",
+                "## Channel Provenance/Isolation",
+                f"- corr_pre_post: `{channel_trace['corr_pre_post']}`",
+                f"- corr_pre_realized: `{channel_trace['corr_pre_realized']}`",
+                f"- corr_post_realized: `{channel_trace['corr_post_realized']}`",
+                f"- coupling_mean: `{channel_trace['coupling_mean']}`",
+                f"- pre_noise_std: `{channel_trace['pre_noise_std']}`",
+            ]
+        )
+
+    return "\n".join(lines)
 
 
 def execute_profile_condition(
@@ -546,7 +589,9 @@ def execute_profile_condition(
     )
 
     failure_signatures = evaluate_failure_signatures(experiment_type, metrics_values)
-    status = _manifest_status(metrics_values)
+    status = _fail_hard_status(metrics_values, failure_signatures)
+    evidence_direction = _effective_evidence_direction(condition.evidence_direction, status)
+    channel_trace = _channel_isolation_trace(experiment_type, rollout)
     backend_metadata = backend_outputs.get("backend_metadata", {})
     checkpoint_verification = _checkpoint_verification(
         backend=backend,
@@ -642,7 +687,7 @@ def execute_profile_condition(
         "stop_criteria_version": "stop_criteria/v1",
         "claim_ids_tested": [profile.claim_id],
         "evidence_class": profile.evidence_class,
-        "evidence_direction": condition.evidence_direction,
+        "evidence_direction": evidence_direction,
         "failure_signatures": failure_signatures,
         "artifacts": {
             "metrics_path": "metrics.json",
@@ -650,6 +695,8 @@ def execute_profile_condition(
             "adapter_signals_path": "jepa_adapter_signals.v1.json",
         },
     }
+    if channel_trace is not None:
+        manifest["artifacts"]["traces_dir"] = "traces"
 
     metrics_payload = build_metrics_payload(metrics_values)
 
@@ -682,6 +729,7 @@ def execute_profile_condition(
         backend=backend,
         metrics=metrics_values,
         failure_signatures=failure_signatures,
+        channel_trace=channel_trace,
         hook_payloads=hook_payloads,
         backend_metadata=backend_metadata,
         checkpoint_verification=checkpoint_verification,
@@ -695,6 +743,10 @@ def execute_profile_condition(
         _write_json(run_dir / "manifest.json", manifest)
         _write_json(run_dir / "metrics.json", metrics_payload)
         _write_json(run_dir / "jepa_adapter_signals.v1.json", adapter_signals)
+        if channel_trace is not None:
+            traces_dir = run_dir / "traces"
+            traces_dir.mkdir(parents=True, exist_ok=True)
+            _write_json(traces_dir / "channel_isolation.v1.json", channel_trace)
         (run_dir / "summary.md").write_text(summary + "\n", encoding="utf-8")
 
     return RunExecutionResult(

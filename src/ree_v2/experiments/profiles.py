@@ -263,6 +263,7 @@ PROFILE_CATALOG: dict[str, ClaimProfile] = {
             FailureRule("mech060:precommit_channel_contamination", "pre_commit_error_signal_to_noise", "<", 1.20),
             FailureRule("mech060:postcommit_channel_contamination", "cross_channel_leakage_rate", ">", 0.20),
             FailureRule("mech060:attribution_reliability_break", "post_commit_error_attribution_gain", "<", 0.25),
+            FailureRule("mech060:commitment_reversal_spike", "commitment_reversal_rate", ">", 0.10),
         ),
     ),
 }

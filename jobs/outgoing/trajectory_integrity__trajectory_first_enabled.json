@@ -1,7 +1,7 @@
 {
   "schema_version": "ree_remote_job_spec/v1",
   "job_id": "trajectory_integrity__trajectory_first_enabled",
-  "created_utc": "2026-02-14T17:09:45Z",
+  "created_utc": "2026-02-15T10:10:04Z",
   "experiment_type": "trajectory_integrity",
   "condition": "trajectory_first_enabled",
   "seeds": [
@@ -14,8 +14,8 @@
   "offload_reasons": [
     "seeds_per_condition>2"
   ],
-  "source_commit": "7cf3b09feb088aa29d39e31ef98502236487c764",
+  "source_commit": "5d146fed8b973e5d602374fa05285430ca5544e5",
   "contract_lock_sha256": "421f756451519e768093161825bf8035231266260e11ee00b3e08caea3b3420e",
-  "jepa_source_lock_sha256": "43a2f35707818f401cdfe052dc49224da3e809f137bdfa5b68003a58af79e845",
+  "jepa_source_lock_sha256": "e13ba0e296578b26f4d2d2ebd3e6b3ed3ca01f4ddeb5d2ec95d6d5185e47b5b3",
   "results_destination": "evidence/experiments/trajectory_integrity/runs"
 }

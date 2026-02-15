@@ -3,12 +3,12 @@
 ## Metadata
 - week_of_utc: `2026-02-09`
 - producer_repo: `ree-v2`
-- producer_commit: `65d51ffa9c66de58b5cf5c3bd403f0e2dd6c636c`
-- generated_utc: `2026-02-14T18:32:05Z`
+- producer_commit: `5d146fed8b973e5d602374fa05285430ca5544e5`
+- generated_utc: `2026-02-15T08:36:04Z`
 
 ## Contract Sync
 - ree_assembly_repo: `REE_assembly`
-- ree_assembly_commit: `1561369c79d4f2290e843b0a15407f91c72a8ea7`
+- ree_assembly_commit: `e5bee8baf007b7f5c78dddea4bb2778324f793ae`
 - contract_lock_path: `contracts/ree_assembly_contract_lock.v1.json`
 - contract_lock_hash: `421f756451519e768093161825bf8035231266260e11ee00b3e08caea3b3420e`
 - schema_version_set: `experiment_pack/v1, experiment_pack_metrics/v1, hook_registry/v1, jepa_adapter_signals/v1`
@@ -21,7 +21,7 @@
 | schema_validation | PASS | `python3 scripts/validate_experiment_pack.py --runs-root evidence/experiments` :: PASS: validated 46 run(s), schemas, adapter files, and contract lock hashes |
 | seed_determinism | PASS | `python3 scripts/check_seed_determinism.py --profile all --max-abs-delta 1e-6` :: checked commit_dual_error_channels/single_error_stream seed=11 max_abs_delta=0 |
 | hook_surface_coverage | PASS | `python3 scripts/validate_hook_surfaces.py --registry contracts/hook_registry.v1.json` :: PASS: hook surface contract verified for HK-001..HK-006 and HK-101..HK-104 |
-| remote_export_import | PASS | `python3 scripts/estimate_run_resources.py --profile all --machine macbook_air_m2_2022` :: experiment_type	condition	estimated_runtime_minutes	execution_mode	offload_reason ; `python3 scripts/build_remote_job_spec.py --profile all --out-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_mw452b2w/outgoing` :: wrote /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_mw452b2w/outgoing/commit_dual_error_channels__single_error_stream.json ; `python3 scripts/submit_remote_job.py --job-spec-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_mw452b2w/outgoing --dry-run` :: dry-run submit OK: commit_dual_error_channels__pre_post_split_streams.json -> backend=<not configured> ; `python3 scripts/pull_remote_results.py --job-run-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_mw452b2w/completed --runs-root evidence/experiments --dry-run` :: PASS: no completed remote result bundles in /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_mw452b2w/completed |
+| remote_export_import | PASS | `python3 scripts/estimate_run_resources.py --profile all --machine macbook_air_m2_2022` :: experiment_type	condition	estimated_runtime_minutes	execution_mode	offload_reason ; `python3 scripts/build_remote_job_spec.py --profile all --out-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_7jmrv1pi/outgoing` :: wrote /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_7jmrv1pi/outgoing/commit_dual_error_channels__single_error_stream.json ; `python3 scripts/submit_remote_job.py --job-spec-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_7jmrv1pi/outgoing --dry-run` :: dry-run submit OK: commit_dual_error_channels__pre_post_split_streams.json -> backend=<not configured> ; `python3 scripts/pull_remote_results.py --job-run-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_7jmrv1pi/completed --runs-root evidence/experiments --dry-run` :: PASS: no completed remote result bundles in /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_7jmrv1pi/completed |
 
 ## Run-Pack Inventory
 | experiment_type | run_id | seed | condition_or_scenario | status | evidence_direction | claim_ids_tested | failure_signatures | execution_mode | compute_backend | runtime_minutes | pack_path |
@@ -81,19 +81,11 @@
 | MECH-059 | 11 | 8 | 0 | 3 | 0 | mech059:abstention_reliability_collapse,mech059:uncertainty_metric_gaming_detected |
 | MECH-060 | 11 | 8 | 3 | 0 | 0 | mech060:attribution_reliability_break,mech060:postcommit_channel_contamination |
 
-## Parity Delta Summary vs ree-v1-minimal
-| claim_id | direction | reason |
-| --- | --- | --- |
-| MECH-056 | mixed | strict parity matrix includes both `trajectory_first_enabled` (supports) and `trajectory_first_ablated` (weakens) across seeds `11,29,47`, so overlap conflict remains bidirectional under baseline-matched inputs |
-| MECH-058 | mixed | `ema_anchor_on` remains supports while `ema_anchor_off` weakens across seeds `11,29,47`, indicating ablation split rather than single-direction parity delta |
-| MECH-059 | mixed | `explicit_uncertainty_head` supports while `deterministic_plus_dispersion` remains mixed across seeds `11,29,47`; parity delta is not directionally uniform |
-| MECH-060 | mixed | `pre_post_split_streams` supports while `single_error_stream` weakens across seeds `11,29,47`, preserving the dual-condition directional split |
-
 ## Open Blockers
 - Real JEPA backend evidence remains blocked: no verified real-checkpoint runs; current JEPA fallback-only runs=6.
 
 ## Local Compute Options Watch
-- local_options_last_updated_utc: `2026-02-14T14:43:11Z`
+- local_options_last_updated_utc: `2026-02-15T08:35:46Z`
 - rolling_3mo_cloud_spend_eur: `0`
 - local_blocked_sessions_this_week: `0`
 - recommended_local_action: `hold_cloud_only`

@@ -263,18 +263,18 @@ def _jepa_uncertainty_channels_rollout(condition_name: str, seed: int, steps: in
 def _commit_dual_error_channels_rollout(condition_name: str, seed: int, steps: int) -> ToyRollout:
     cfg = {
         "single_error_stream": {
-            "pre_noise": 0.12,
-            "post_noise": 0.11,
-            "channel_coupling": 0.88,
-            "post_gain": 0.12,
-            "reversal_cutoff": 0.26,
+            "pre_noise": 0.16,
+            "post_noise": 0.14,
+            "channel_coupling": 0.92,
+            "post_gain": 0.08,
+            "reversal_cutoff": 0.22,
         },
         "pre_post_split_streams": {
-            "pre_noise": 0.06,
-            "post_noise": 0.05,
-            "channel_coupling": 0.12,
-            "post_gain": 0.48,
-            "reversal_cutoff": 0.44,
+            "pre_noise": 0.04,
+            "post_noise": 0.03,
+            "channel_coupling": 0.04,
+            "post_gain": 0.62,
+            "reversal_cutoff": 0.34,
         },
     }[condition_name]
 
@@ -305,7 +305,8 @@ def _commit_dual_error_channels_rollout(condition_name: str, seed: int, steps: i
         realized = driver + rng.gauss(0.0, 0.22)
 
         post_n = rng.gauss(0.0, cfg["post_noise"])
-        post = (cfg["channel_coupling"] * pre) + ((1.0 - cfg["channel_coupling"]) * (realized + cfg["post_gain"])) + post_n
+        post_target = realized + (cfg["post_gain"] * (realized - pre))
+        post = (cfg["channel_coupling"] * pre) + ((1.0 - cfg["channel_coupling"]) * post_target) + post_n
 
         pre_signal.append(pre)
         pre_noise.append(pre_n)
@@ -314,7 +315,7 @@ def _commit_dual_error_channels_rollout(condition_name: str, seed: int, steps: i
         coupling_series.append(cfg["channel_coupling"])
 
         latent_errors.append(abs(realized - pre))
-        reversal = 1 if abs(pre - post) > cfg["reversal_cutoff"] else 0
+        reversal = 1 if abs(post - realized) > cfg["reversal_cutoff"] else 0
         events["commitment_reversal"].append(reversal)
         events["residual_present"].append(1)
         events["precision_complete"].append(1)

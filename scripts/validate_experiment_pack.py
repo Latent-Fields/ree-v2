@@ -120,6 +120,17 @@ def validate_run(
         if key not in scenario:
             issues.append(f"{manifest_path}: scenario missing JEPA provenance field '{key}'")
 
+    status = str(manifest.get("status", ""))
+    failure_signatures = manifest.get("failure_signatures", [])
+    if status == "PASS" and failure_signatures:
+        issues.append(f"{manifest_path}: status=PASS is invalid when failure_signatures is non-empty")
+    if experiment_type == "commit_dual_error_channels" and status == "PASS":
+        mech060_signatures = [sig for sig in failure_signatures if isinstance(sig, str) and sig.startswith("mech060:")]
+        if mech060_signatures:
+            issues.append(
+                f"{manifest_path}: commit_dual_error_channels status=PASS cannot include mech060 signatures {sorted(mech060_signatures)}"
+            )
+
     if metrics_path.exists():
         metrics = load_json(metrics_path)
         issues.extend(format_schema_errors(metrics_validator, metrics, str(metrics_path)))
@@ -168,6 +179,29 @@ def validate_run(
                 )
             if adapter_payload.get("run_id") != run_id:
                 issues.append(f"{adapter_path}: run_id mismatch dir={run_id} payload={adapter_payload.get('run_id')}")
+
+    if experiment_type == "commit_dual_error_channels":
+        traces_dir_rel = artifacts.get("traces_dir")
+        if not traces_dir_rel:
+            issues.append(f"{manifest_path}: commit_dual_error_channels runs must declare artifacts.traces_dir")
+        else:
+            trace_path = run_dir / traces_dir_rel / "channel_isolation.v1.json"
+            if not trace_path.exists():
+                issues.append(f"{manifest_path}: missing channel isolation trace artifact ({trace_path})")
+            else:
+                trace_payload = load_json(trace_path)
+                required_trace_keys = {
+                    "corr_pre_post",
+                    "corr_pre_realized",
+                    "corr_post_realized",
+                    "coupling_mean",
+                    "pre_noise_std",
+                }
+                missing_trace_keys = sorted(required_trace_keys - set(trace_payload.keys()))
+                if missing_trace_keys:
+                    issues.append(
+                        f"{trace_path}: missing required key(s) {missing_trace_keys}"
+                    )
 
     return issues
 
