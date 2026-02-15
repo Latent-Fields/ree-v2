@@ -1,6 +1,6 @@
 # Weekly Dispatch - ree-v2
 
-Generated: `2026-02-15T14:56:46.678173Z`
+Generated: `2026-02-15T16:43:45.506999Z`
 
 ## Context
 
@@ -16,10 +16,10 @@ Generated: `2026-02-15T14:56:46.678173Z`
 | `EXP-0002` | `ARC-005` | `high` | `claim_probe_arc_005` | Reduce uncertainty for ARC-005 via targeted experiment runs. | At least 2 additional runs with distinct seeds.; Experiment Pack validates against v1 schema.; Result links to claim_ids_tested and updates matrix direction counts. |
 | `EXP-0003` | `ARC-007` | `high` | `claim_probe_arc_007` | Reduce uncertainty for ARC-007 via targeted experiment runs. | At least 2 additional runs with distinct seeds.; Experiment Pack validates against v1 schema.; Result links to claim_ids_tested and updates matrix direction counts. |
 | `EXP-0004` | `ARC-018` | `high` | `claim_probe_arc_018` | Reduce uncertainty for ARC-018 via targeted experiment runs. | At least 2 additional runs with distinct seeds.; Experiment Pack validates against v1 schema.; Result links to claim_ids_tested and updates matrix direction counts. |
-| `EXP-0006` | `IMPL-022` | `high` | `claim_probe_impl_022` | Reduce uncertainty for IMPL-022 via targeted experiment runs. | At least 2 additional runs with distinct seeds.; Experiment Pack validates against v1 schema.; Result links to claim_ids_tested and updates matrix direction counts. |
-| `EXP-0007` | `MECH-033` | `high` | `claim_probe_mech_033` | Reduce uncertainty for MECH-033 via targeted experiment runs. | At least 2 additional runs with distinct seeds.; Experiment Pack validates against v1 schema.; Result links to claim_ids_tested and updates matrix direction counts. |
-| `EXP-0009` | `MECH-040` | `high` | `claim_probe_mech_040` | Reduce uncertainty for MECH-040 via targeted experiment runs. | At least 2 additional runs with distinct seeds.; Experiment Pack validates against v1 schema.; Result links to claim_ids_tested and updates matrix direction counts. |
-| `EXP-0011` | `MECH-046` | `high` | `claim_probe_mech_046` | Reduce uncertainty for MECH-046 via targeted experiment runs. | At least 2 additional runs with distinct seeds.; Experiment Pack validates against v1 schema.; Result links to claim_ids_tested and updates matrix direction counts. |
+| `EXP-0005` | `IMPL-022` | `high` | `claim_probe_impl_022` | Reduce uncertainty for IMPL-022 via targeted experiment runs. | At least 2 additional runs with distinct seeds.; Experiment Pack validates against v1 schema.; Result links to claim_ids_tested and updates matrix direction counts. |
+| `EXP-0006` | `MECH-033` | `high` | `claim_probe_mech_033` | Reduce uncertainty for MECH-033 via targeted experiment runs. | At least 2 additional runs with distinct seeds.; Experiment Pack validates against v1 schema.; Result links to claim_ids_tested and updates matrix direction counts. |
+| `EXP-0007` | `MECH-040` | `high` | `claim_probe_mech_040` | Reduce uncertainty for MECH-040 via targeted experiment runs. | At least 2 additional runs with distinct seeds.; Experiment Pack validates against v1 schema.; Result links to claim_ids_tested and updates matrix direction counts. |
+| `EXP-0008` | `MECH-046` | `high` | `claim_probe_mech_046` | Reduce uncertainty for MECH-046 via targeted experiment runs. | At least 2 additional runs with distinct seeds.; Experiment Pack validates against v1 schema.; Result links to claim_ids_tested and updates matrix direction counts. |
 
 ## Copy/Paste Prompt
 
@@ -33,10 +33,10 @@ Required work items:
 - `EXP-0002` / `ARC-005` / `claim_probe_arc_005`
 - `EXP-0003` / `ARC-007` / `claim_probe_arc_007`
 - `EXP-0004` / `ARC-018` / `claim_probe_arc_018`
-- `EXP-0006` / `IMPL-022` / `claim_probe_impl_022`
-- `EXP-0007` / `MECH-033` / `claim_probe_mech_033`
-- `EXP-0009` / `MECH-040` / `claim_probe_mech_040`
-- `EXP-0011` / `MECH-046` / `claim_probe_mech_046`
+- `EXP-0005` / `IMPL-022` / `claim_probe_impl_022`
+- `EXP-0006` / `MECH-033` / `claim_probe_mech_033`
+- `EXP-0007` / `MECH-040` / `claim_probe_mech_040`
+- `EXP-0008` / `MECH-046` / `claim_probe_mech_046`
 
 Contract to follow exactly:
 - `evidence/experiments/INTERFACE_CONTRACT.md`
