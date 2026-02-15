@@ -3,14 +3,14 @@
 ## Metadata
 - week_of_utc: `2026-02-09`
 - producer_repo: `ree-v2`
-- producer_commit: `899707376fc5559cf0935288dc16f7177c960b6b`
-- generated_utc: `2026-02-15T11:20:28Z`
+- producer_commit: `86584d55cc364c33e0a58c97560c71c29c607348`
+- generated_utc: `2026-02-15T14:04:02Z`
 
 ## Contract Sync
 - ree_assembly_repo: `REE_assembly`
-- ree_assembly_commit: `942bf8adc88509fd9cd1d0849b61e00692624aff`
+- ree_assembly_commit: `a65aa23c69712a65e77c06d064358829afecf568`
 - contract_lock_path: `contracts/ree_assembly_contract_lock.v1.json`
-- contract_lock_hash: `421f756451519e768093161825bf8035231266260e11ee00b3e08caea3b3420e`
+- contract_lock_hash: `d45825a1a57b95d05b8a4d755e28f7504a48eadefd04a8dc433dd555d358855f`
 - schema_version_set: `experiment_pack/v1, experiment_pack_metrics/v1, hook_registry/v1, jepa_adapter_signals/v1`
 - template_path: `/Users/dgolden/Documents/GitHub/REE_assembly/evidence/planning/WEEKLY_HANDOFF_TEMPLATE.md`
 - template_sha256: `3995a20b39f04dc468c429d6d95d6f913b919c174beb40ccd3af04a081d5d0ad`
@@ -18,10 +18,10 @@
 ## CI Gates
 | gate | status | evidence |
 | --- | --- | --- |
-| schema_validation | PASS | `python3 scripts/validate_experiment_pack.py --runs-root evidence/experiments` :: PASS: validated 46 run(s), schemas, adapter files, and contract lock hashes |
+| schema_validation | PASS | `python3 scripts/validate_experiment_pack.py --runs-root evidence/experiments` :: PASS: validated 50 run(s), schemas, adapter files, and contract lock hashes |
 | seed_determinism | PASS | `python3 scripts/check_seed_determinism.py --profile all --max-abs-delta 1e-6` :: checked commit_dual_error_channels/single_error_stream seed=11 max_abs_delta=0 |
-| hook_surface_coverage | PASS | `python3 scripts/validate_hook_surfaces.py --registry contracts/hook_registry.v1.json` :: PASS: hook surface contract verified for HK-001..HK-006 and HK-101..HK-104 |
-| remote_export_import | PASS | `python3 scripts/estimate_run_resources.py --profile all --machine macbook_air_m2_2022` :: experiment_type	condition	estimated_runtime_minutes	execution_mode	offload_reason ; `python3 scripts/build_remote_job_spec.py --profile all --out-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_m7aaq3zs/outgoing` :: wrote /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_m7aaq3zs/outgoing/commit_dual_error_channels__single_error_stream.json ; `python3 scripts/submit_remote_job.py --job-spec-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_m7aaq3zs/outgoing --dry-run` :: dry-run submit OK: commit_dual_error_channels__pre_post_split_streams.json -> backend=<not configured> ; `python3 scripts/pull_remote_results.py --job-run-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_m7aaq3zs/completed --runs-root evidence/experiments --dry-run` :: PASS: no completed remote result bundles in /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_m7aaq3zs/completed |
+| hook_surface_coverage | PASS | `python3 scripts/validate_hook_surfaces.py --registry contracts/hook_registry.v1.json` :: PASS: hook surface contract verified for HK-001..HK-009 and HK-101..HK-104 |
+| remote_export_import | PASS | `python3 scripts/estimate_run_resources.py --profile all --machine macbook_air_m2_2022` :: experiment_type	condition	estimated_runtime_minutes	execution_mode	offload_reason ; `python3 scripts/build_remote_job_spec.py --profile all --out-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_t9tfz2fq/outgoing` :: wrote /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_t9tfz2fq/outgoing/commit_dual_error_channels__single_error_stream.json ; `python3 scripts/submit_remote_job.py --job-spec-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_t9tfz2fq/outgoing --dry-run` :: dry-run submit OK: commit_dual_error_channels__pre_post_split_streams.json -> backend=<not configured> ; `python3 scripts/pull_remote_results.py --job-run-dir /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_t9tfz2fq/completed --runs-root evidence/experiments --dry-run` :: PASS: no completed remote result bundles in /var/folders/60/l2q_ptls0r76nzvtbqldjt4m0000gn/T/ree_v2_handoff_jobs_t9tfz2fq/completed |
 
 ## Run-Pack Inventory
 | experiment_type | run_id | seed | condition_or_scenario | status | evidence_direction | claim_ids_tested | failure_signatures | execution_mode | compute_backend | runtime_minutes | pack_path |
@@ -37,6 +37,10 @@
 | commit_dual_error_channels | 2026-02-14T183153Z_commit-dual-error-channels_seed29_single_error_stream_toyenv_internal_minimal | 29 | single_error_stream | FAIL | weakens | MECH-060 | mech060:attribution_reliability_break,mech060:postcommit_channel_contamination | remote | cloud_gpu_a10g | 56.0 | evidence/experiments/commit_dual_error_channels/runs/2026-02-14T183153Z_commit-dual-error-channels_seed29_single_error_stream_toyenv_internal_minimal |
 | commit_dual_error_channels | 2026-02-14T183153Z_commit-dual-error-channels_seed47_pre_post_split_streams_toyenv_internal_minimal | 47 | pre_post_split_streams | FAIL | supports | MECH-060 | mech060:commitment_reversal_spike | remote | cloud_gpu_a10g | 63.0 | evidence/experiments/commit_dual_error_channels/runs/2026-02-14T183153Z_commit-dual-error-channels_seed47_pre_post_split_streams_toyenv_internal_minimal |
 | commit_dual_error_channels | 2026-02-14T183153Z_commit-dual-error-channels_seed47_single_error_stream_toyenv_internal_minimal | 47 | single_error_stream | FAIL | weakens | MECH-060 | mech060:attribution_reliability_break,mech060:postcommit_channel_contamination | remote | cloud_gpu_a10g | 56.0 | evidence/experiments/commit_dual_error_channels/runs/2026-02-14T183153Z_commit-dual-error-channels_seed47_single_error_stream_toyenv_internal_minimal |
+| commit_dual_error_channels | 2026-02-15T135835Z_commit-dual-error-channels_seed11_pre_post_split_streams_toyenv_internal_minimal | 11 | pre_post_split_streams | PASS | supports | MECH-060 | none | remote | cloud_gpu_a10g | 63.0 | evidence/experiments/commit_dual_error_channels/runs/2026-02-15T135835Z_commit-dual-error-channels_seed11_pre_post_split_streams_toyenv_internal_minimal |
+| commit_dual_error_channels | 2026-02-15T135835Z_commit-dual-error-channels_seed11_single_error_stream_toyenv_internal_minimal | 11 | single_error_stream | FAIL | weakens | MECH-060 | mech060:postcommit_channel_contamination,mech060:attribution_reliability_break,mech060:commitment_reversal_spike | remote | cloud_gpu_a10g | 56.0 | evidence/experiments/commit_dual_error_channels/runs/2026-02-15T135835Z_commit-dual-error-channels_seed11_single_error_stream_toyenv_internal_minimal |
+| commit_dual_error_channels | 2026-02-15T140029Z_commit-dual-error-channels_seed11_pre_post_split_streams_toyenv_internal_minimal | 11 | pre_post_split_streams | PASS | supports | MECH-060 | none | remote | cloud_gpu_a10g | 63.0 | evidence/experiments/commit_dual_error_channels/runs/2026-02-15T140029Z_commit-dual-error-channels_seed11_pre_post_split_streams_toyenv_internal_minimal |
+| commit_dual_error_channels | 2026-02-15T140029Z_commit-dual-error-channels_seed11_single_error_stream_toyenv_internal_minimal | 11 | single_error_stream | FAIL | weakens | MECH-060 | mech060:postcommit_channel_contamination,mech060:attribution_reliability_break,mech060:commitment_reversal_spike | remote | cloud_gpu_a10g | 56.0 | evidence/experiments/commit_dual_error_channels/runs/2026-02-15T140029Z_commit-dual-error-channels_seed11_single_error_stream_toyenv_internal_minimal |
 | jepa_anchor_ablation | 2026-02-14T150100Z_jepa-anchor-ablation_seed11_ema_anchor_on | 11 | ema_anchor_on | PASS | supports | MECH-058 | none | remote | cloud_gpu_a10g | 68.0 | evidence/experiments/jepa_anchor_ablation/runs/2026-02-14T150100Z_jepa-anchor-ablation_seed11_ema_anchor_on |
 | jepa_anchor_ablation | 2026-02-14T164820Z_jepa-anchor-ablation_seed11_ema_anchor_on_toyenv | 11 | ema_anchor_on | FAIL | supports | MECH-058 | mech058:ema_drift_under_shift | remote | cloud_gpu_a10g | 68.0 | evidence/experiments/jepa_anchor_ablation/runs/2026-02-14T164820Z_jepa-anchor-ablation_seed11_ema_anchor_on_toyenv |
 | jepa_anchor_ablation | 2026-02-14T164941Z_jepa-anchor-ablation_seed11_ema_anchor_on_toyenv | 11 | ema_anchor_on | PASS | supports | MECH-058 | none | remote | cloud_gpu_a10g | 68.0 | evidence/experiments/jepa_anchor_ablation/runs/2026-02-14T164941Z_jepa-anchor-ablation_seed11_ema_anchor_on_toyenv |
@@ -79,7 +83,7 @@
 | MECH-056 | 13 | 10 | 3 | 0 | 0 | domination_lock_in,explanation_policy_divergence,ledger_editing |
 | MECH-058 | 11 | 8 | 3 | 0 | 0 | mech058:anchor_separation_collapse,mech058:ema_drift_under_shift |
 | MECH-059 | 11 | 8 | 0 | 3 | 0 | mech059:abstention_reliability_collapse,mech059:uncertainty_metric_gaming_detected |
-| MECH-060 | 11 | 8 | 3 | 0 | 0 | mech060:attribution_reliability_break,mech060:commitment_reversal_spike,mech060:postcommit_channel_contamination |
+| MECH-060 | 15 | 10 | 5 | 0 | 0 | mech060:attribution_reliability_break,mech060:commitment_reversal_spike,mech060:postcommit_channel_contamination |
 
 ## Open Blockers
 - Real JEPA backend evidence remains blocked: no verified real-checkpoint runs; current JEPA fallback-only runs=6.
