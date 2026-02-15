@@ -150,8 +150,46 @@
       },
       "additionalProperties": false
     },
+    "stream_tag_quality": {
+      "type": "object",
+      "properties": {
+        "WORLD": {
+          "$ref": "#/$defs/tag_quality_entry"
+        },
+        "HOMEOSTASIS": {
+          "$ref": "#/$defs/tag_quality_entry"
+        },
+        "HARM": {
+          "$ref": "#/$defs/tag_quality_entry"
+        },
+        "SELF_SENSORY": {
+          "$ref": "#/$defs/tag_quality_entry"
+        }
+      },
+      "additionalProperties": false
+    },
     "notes": {
       "type": "string"
+    }
+  },
+  "$defs": {
+    "tag_quality_entry": {
+      "type": "object",
+      "required": [
+        "present",
+        "quality"
+      ],
+      "properties": {
+        "present": {
+          "type": "boolean"
+        },
+        "quality": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
     }
   },
   "allOf": [

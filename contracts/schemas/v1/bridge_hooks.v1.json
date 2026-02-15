@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ree://hook-surface/v1/bridge_hooks.v1.json",
+  "title": "REE Bridge Hook Payloads v1",
+  "type": "object",
+  "required": [
+    "HK-007",
+    "HK-008",
+    "HK-009"
+  ],
+  "properties": {
+    "HK-007": {
+      "type": "object",
+      "required": [
+        "commit_boundary"
+      ],
+      "properties": {
+        "commit_boundary": {
+          "type": "object",
+          "required": [
+            "commit_id",
+            "trajectory_id",
+            "issued_at_step",
+            "ttl_steps",
+            "mode_snapshot"
+          ],
+          "properties": {
+            "commit_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "trajectory_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "issued_at_step": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ttl_steps": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "mode_snapshot": {}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "HK-008": {
+      "type": "object",
+      "required": [
+        "trace"
+      ],
+      "properties": {
+        "trace": {
+          "type": "object",
+          "required": [
+            "gate_motor",
+            "gate_cognitive_set",
+            "gate_motivational",
+            "gate_arbitration_policy",
+            "gate_conflict_flag"
+          ],
+          "properties": {
+            "gate_motor": {
+              "type": "string",
+              "minLength": 1
+            },
+            "gate_cognitive_set": {
+              "type": "string",
+              "minLength": 1
+            },
+            "gate_motivational": {
+              "type": "string",
+              "minLength": 1
+            },
+            "gate_arbitration_policy": {
+              "type": "string",
+              "minLength": 1
+            },
+            "gate_conflict_flag": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "HK-009": {
+      "type": "object",
+      "required": [
+        "control_axes"
+      ],
+      "properties": {
+        "control_axes": {
+          "type": "object",
+          "required": [
+            "tonic",
+            "phasic",
+            "readout_weights"
+          ],
+          "properties": {
+            "tonic": {
+              "type": "number"
+            },
+            "phasic": {
+              "type": "number"
+            },
+            "readout_weights": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

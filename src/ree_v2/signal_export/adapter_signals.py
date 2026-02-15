@@ -5,6 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 
+def _clamp01(value: float) -> float:
+    return max(0.0, min(1.0, value))
+
+
 def build_adapter_signals(
     *,
     experiment_type: str,
@@ -37,6 +41,31 @@ def build_adapter_signals(
     if "tri_loop_trace_coverage_rate" in metrics_values:
         signal_metrics["tri_loop_trace_coverage_rate"] = float(metrics_values["tri_loop_trace_coverage_rate"])
 
+    completeness = float(metrics_values.get("precision_input_completeness_rate", 1.0))
+    residual_coverage = float(metrics_values.get("latent_residual_coverage_rate", 1.0))
+    mean_error = float(metrics_values.get("latent_prediction_error_mean", 0.0))
+    p95_error = float(metrics_values.get("latent_prediction_error_p95", max(mean_error, 1e-9)))
+    commitment_reversal = float(metrics_values.get("commitment_reversal_rate", 0.0))
+
+    stream_tag_quality = {
+        "WORLD": {
+            "present": True,
+            "quality": _clamp01((completeness + residual_coverage) / 2.0),
+        },
+        "HOMEOSTASIS": {
+            "present": True,
+            "quality": _clamp01(1.0 - (mean_error / max(p95_error, 1e-9))),
+        },
+        "HARM": {
+            "present": True,
+            "quality": _clamp01(1.0 - commitment_reversal),
+        },
+        "SELF_SENSORY": {
+            "present": include_action_token,
+            "quality": _clamp01(completeness if include_action_token else 0.0),
+        },
+    }
+
     return {
         "schema_version": "jepa_adapter_signals/v1",
         "experiment_type": experiment_type,
@@ -59,4 +88,5 @@ def build_adapter_signals(
         "pe_latent_fields": ["mean", "p95", "by_mask"],
         "uncertainty_estimator": uncertainty_estimator,
         "signal_metrics": signal_metrics,
+        "stream_tag_quality": stream_tag_quality,
     }

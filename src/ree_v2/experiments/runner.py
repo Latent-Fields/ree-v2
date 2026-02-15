@@ -254,6 +254,47 @@ def _compute_metrics(experiment_type: str, rollout: Any) -> dict[str, float]:
             }
         )
 
+    elif experiment_type == "tri_loop_arbitration_policy":
+        metrics.update(
+            {
+                "tri_loop_gate_conflict_rate": round(
+                    _mean([float(v) for v in rollout.events.get("gate_conflict", [])]),
+                    12,
+                ),
+                "tri_loop_policy_alignment_rate": round(
+                    _mean([float(v) for v in rollout.signals.get("policy_alignment", [])]),
+                    12,
+                ),
+                "tri_loop_arbitration_override_rate": round(
+                    _mean([float(v) for v in rollout.events.get("arbitration_override", [])]),
+                    12,
+                ),
+            }
+        )
+
+    elif experiment_type == "control_axis_ablation":
+        axis_stability = rollout.signals.get("axis_stability", [])
+        weights_series = rollout.signals.get("control_axis_weights", [])
+        mean_weights = [
+            _mean([row[idx] for row in weights_series]) if weights_series else 0.0
+            for idx in range(3)
+        ]
+        entropy = 0.0
+        for value in mean_weights:
+            clipped = max(value, 1e-12)
+            entropy -= clipped * math.log(clipped)
+
+        metrics.update(
+            {
+                "control_axis_stability_index": round(_mean(axis_stability), 12),
+                "control_axis_readout_entropy": round(entropy, 12),
+                "control_axis_policy_loss_rate": round(
+                    _mean([float(v) for v in rollout.events.get("policy_loss", [])]),
+                    12,
+                ),
+            }
+        )
+
     else:
         raise KeyError(f"Unsupported experiment_type for metrics: {experiment_type}")
 
@@ -385,24 +426,38 @@ def _build_hook_payloads_from_backend_outputs(
     }
 
     commitment_reversals = rollout.events.get("commitment_reversal", [])
+    gate_conflicts = rollout.events.get("gate_conflict", [])
     tri_loop_trace = {
         "gate_motor": "action_conditioned" if include_action_token else "state_only",
         "gate_cognitive_set": f"{experiment_type}:{condition_name}",
         "gate_motivational": "error_reduction",
         "gate_arbitration_policy": (
-            "dual_stream_pre_post" if experiment_type == "commit_dual_error_channels" else "single_stream"
+            condition_name
+            if experiment_type == "tri_loop_arbitration_policy"
+            else ("dual_stream_pre_post" if experiment_type == "commit_dual_error_channels" else "single_stream")
         ),
-        "gate_conflict_flag": bool(sum(commitment_reversals) > 0) if commitment_reversals else False,
+        "gate_conflict_flag": (
+            bool(sum(gate_conflicts) > 0)
+            if gate_conflicts
+            else (bool(sum(commitment_reversals) > 0) if commitment_reversals else False)
+        ),
     }
 
     latent_errors = rollout.signals.get("latent_error", [])
     action_magnitude = _mean([abs(value) for value in rollout.actions]) if rollout.actions else 0.0
     uncertainty_weight = 1.0 if include_uncertainty else 0.5
-    raw_weights = [
-        abs(_mean(latent_errors)),
-        abs(action_magnitude),
-        uncertainty_weight,
-    ]
+    raw_weights = (
+        [
+            abs(_mean(latent_errors)),
+            abs(action_magnitude),
+            uncertainty_weight,
+        ]
+        if not rollout.signals.get("control_axis_weights")
+        else [
+            _mean([weights[idx] for weights in rollout.signals["control_axis_weights"]])
+            for idx in range(3)
+        ]
+    )
     normalizer = sum(raw_weights) if sum(raw_weights) > 0 else 1.0
     control_axes = {
         "tonic": round(_mean([abs(value) for value in rollout.context_values]), 12),

@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from jsonschema import Draft202012Validator
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
@@ -46,6 +48,8 @@ def main() -> int:
     args = parse_args()
     registry = load_registry(args.registry)
     hooks = {item["hook_id"]: item for item in registry.get("hooks", [])}
+    bridge_schema = load_registry(REPO_ROOT / "contracts" / "schemas" / "v1" / "bridge_hooks.v1.json")
+    bridge_validator = Draft202012Validator(bridge_schema)
 
     issues: list[str] = []
     for hook_id in REQUIRED_IDS + STUB_IDS:
@@ -95,6 +99,13 @@ def main() -> int:
         },
     )
     emitted_stubs = emit_planned_stub_hooks()
+    bridge_payloads = {
+        hook_id: emitted_required.get(hook_id)
+        for hook_id in ("HK-007", "HK-008", "HK-009")
+    }
+    for error in sorted(bridge_validator.iter_errors(bridge_payloads), key=lambda item: list(item.path)):
+        path = ".".join(str(item) for item in error.path) or "$"
+        issues.append(f"bridge schema validation failed at {path}: {error.message}")
 
     for hook_id in REQUIRED_IDS:
         hook = hooks.get(hook_id)

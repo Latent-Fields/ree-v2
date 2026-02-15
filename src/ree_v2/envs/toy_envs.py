@@ -337,6 +337,147 @@ def _commit_dual_error_channels_rollout(condition_name: str, seed: int, steps: i
     return rollout
 
 
+def _tri_loop_arbitration_policy_rollout(condition_name: str, seed: int, steps: int) -> ToyRollout:
+    cfg = {
+        "veto_lattice": {
+            "conflict_prob": 0.06,
+            "alignment_base": 0.93,
+            "override_prob": 0.08,
+            "error_mu": 0.13,
+            "error_sigma": 0.035,
+        },
+        "weighted_merge": {
+            "conflict_prob": 0.12,
+            "alignment_base": 0.86,
+            "override_prob": 0.14,
+            "error_mu": 0.16,
+            "error_sigma": 0.042,
+        },
+        "mode_conditioned_precedence": {
+            "conflict_prob": 0.08,
+            "alignment_base": 0.90,
+            "override_prob": 0.10,
+            "error_mu": 0.145,
+            "error_sigma": 0.038,
+        },
+    }[condition_name]
+
+    rng = _rng_for("tri_loop_arbitration_policy", condition_name, seed)
+    rollout = _init_rollout("tri_loop_arbitration_policy", condition_name, seed, steps)
+
+    latent_errors: list[float] = []
+    policy_alignment: list[float] = []
+    gate_conflict: list[float] = []
+    arbitration_override: list[float] = []
+
+    events = {
+        "gate_conflict": [],
+        "policy_alignment": [],
+        "arbitration_override": [],
+        "residual_present": [],
+        "precision_complete": [],
+    }
+
+    state = rng.uniform(-0.1, 0.1)
+    for step in range(steps):
+        state += 0.025 * math.sin((step + 1) / 6.0) + rng.gauss(0.0, 0.02)
+        conflict = 1 if rng.random() < cfg["conflict_prob"] else 0
+        override = 1 if rng.random() < cfg["override_prob"] else 0
+        alignment_value = max(0.0, min(1.0, cfg["alignment_base"] - (0.12 * conflict) - (0.06 * override) + rng.gauss(0.0, 0.015)))
+        error = max(0.0, rng.gauss(cfg["error_mu"] + (0.045 * conflict), cfg["error_sigma"]))
+
+        latent_errors.append(error)
+        policy_alignment.append(alignment_value)
+        gate_conflict.append(float(conflict))
+        arbitration_override.append(float(override))
+
+        events["gate_conflict"].append(conflict)
+        events["policy_alignment"].append(1 if alignment_value >= 0.85 else 0)
+        events["arbitration_override"].append(override)
+        events["residual_present"].append(1)
+        events["precision_complete"].append(1)
+
+        rollout.context_values.append(state)
+        rollout.actions.append(1.0 if alignment_value >= 0.85 else -1.0)
+
+    rollout.signals.update(
+        {
+            "latent_error": latent_errors,
+            "policy_alignment": policy_alignment,
+            "gate_conflict": gate_conflict,
+            "arbitration_override": arbitration_override,
+        }
+    )
+    rollout.events.update(events)
+    return rollout
+
+
+def _control_axis_ablation_rollout(condition_name: str, seed: int, steps: int) -> ToyRollout:
+    cfg = {
+        "full_axis": {
+            "tonic_scale": 0.15,
+            "phasic_scale": 0.07,
+            "stability_base": 0.91,
+            "policy_loss_prob": 0.05,
+            "weights": [0.34, 0.33, 0.33],
+            "error_mu": 0.14,
+        },
+        "reduced_axis": {
+            "tonic_scale": 0.09,
+            "phasic_scale": 0.11,
+            "stability_base": 0.73,
+            "policy_loss_prob": 0.17,
+            "weights": [0.78, 0.18, 0.04],
+            "error_mu": 0.19,
+        },
+    }[condition_name]
+
+    rng = _rng_for("control_axis_ablation", condition_name, seed)
+    rollout = _init_rollout("control_axis_ablation", condition_name, seed, steps)
+
+    latent_errors: list[float] = []
+    axis_stability: list[float] = []
+    policy_loss: list[float] = []
+    control_axis_weights: list[list[float]] = []
+
+    events = {
+        "policy_loss": [],
+        "residual_present": [],
+        "precision_complete": [],
+    }
+
+    tonic_state = rng.uniform(-0.05, 0.05)
+    for step in range(steps):
+        tonic_state += cfg["tonic_scale"] * math.sin((step + 1) / 11.0) + rng.gauss(0.0, 0.015)
+        phasic = abs(cfg["phasic_scale"] * math.cos((step + 1) / 4.0) + rng.gauss(0.0, 0.01))
+        stability = max(0.0, min(1.0, cfg["stability_base"] - (0.35 * phasic) + rng.gauss(0.0, 0.02)))
+        loss = 1 if rng.random() < cfg["policy_loss_prob"] else 0
+        error = max(0.0, rng.gauss(cfg["error_mu"] + (0.055 * loss), 0.04))
+
+        latent_errors.append(error)
+        axis_stability.append(stability)
+        policy_loss.append(float(loss))
+        control_axis_weights.append(list(cfg["weights"]))
+
+        events["policy_loss"].append(loss)
+        events["residual_present"].append(1)
+        events["precision_complete"].append(1 if stability >= 0.60 else 0)
+
+        rollout.context_values.append(tonic_state)
+        rollout.actions.append(1.0 if stability >= 0.75 else -1.0)
+
+    rollout.signals.update(
+        {
+            "latent_error": latent_errors,
+            "axis_stability": axis_stability,
+            "policy_loss": policy_loss,
+            "control_axis_weights": control_axis_weights,
+        }
+    )
+    rollout.events.update(events)
+    return rollout
+
+
 def run_toy_rollout(experiment_type: str, condition_name: str, seed: int, steps: int = 120) -> ToyRollout:
     if steps <= 0:
         raise ValueError("steps must be > 0")
@@ -349,5 +490,9 @@ def run_toy_rollout(experiment_type: str, condition_name: str, seed: int, steps:
         return _jepa_uncertainty_channels_rollout(condition_name, seed, steps)
     if experiment_type == "commit_dual_error_channels":
         return _commit_dual_error_channels_rollout(condition_name, seed, steps)
+    if experiment_type == "tri_loop_arbitration_policy":
+        return _tri_loop_arbitration_policy_rollout(condition_name, seed, steps)
+    if experiment_type == "control_axis_ablation":
+        return _control_axis_ablation_rollout(condition_name, seed, steps)
 
     raise KeyError(f"Unsupported experiment_type: {experiment_type}")

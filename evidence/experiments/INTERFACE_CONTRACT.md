@@ -96,6 +96,11 @@ Required core fields:
     - `commit_boundary_join_coverage_rate` (0..1)
     - `tri_loop_trace_coverage_rate` (0..1)
   - plus `latent_uncertainty_calibration_error` if `uncertainty_latent=true`
+- optional `stream_tag_quality` object with tag-level provenance quality:
+  - `WORLD.present` / `WORLD.quality` (0..1)
+  - `HOMEOSTASIS.present` / `HOMEOSTASIS.quality` (0..1)
+  - `HARM.present` / `HARM.quality` (0..1)
+  - `SELF_SENSORY.present` / `SELF_SENSORY.quality` (0..1)
 
 ## Required Hook Surface Coverage (v2)
 
@@ -124,6 +129,15 @@ Required core fields:
   - `control_axes.phasic`
   - `control_axes.readout_weights`
 
+Bridge payload schemas are validated by:
+
+- `contracts/schemas/v1/bridge_hooks.v1.json`
+
+Qualification currently includes additional profiles:
+
+- `tri_loop_arbitration_policy` (`Q-016`) with `veto_lattice`, `weighted_merge`, `mode_conditioned_precedence`
+- `control_axis_ablation` (`Q-017`) with `full_axis`, `reduced_axis`
+
 Validation behavior:
 
 - Missing/invalid adapter file is marked as run failure in generated indexes.
@@ -135,6 +149,11 @@ Ingestion computes FAIL from both:
 
 - `manifest.status`
 - threshold checks in `stop_criteria.v1.yaml`
+
+`stop_criteria.v1.yaml` includes bridge coverage gates for:
+
+- `commit_boundary_join_coverage_rate`
+- `tri_loop_trace_coverage_rate`
 
 If either indicates failure, run is indexed as FAIL.
 

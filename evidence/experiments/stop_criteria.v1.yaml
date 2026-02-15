@@ -2,7 +2,9 @@
   "schema_version": "stop_criteria/v1",
   "default": {
     "fail_if": [
-      { "metric": "fatal_error_count", "op": ">", "threshold": 0 }
+      { "metric": "fatal_error_count", "op": ">", "threshold": 0 },
+      { "metric": "commit_boundary_join_coverage_rate", "op": "<", "threshold": 0.99 },
+      { "metric": "tri_loop_trace_coverage_rate", "op": "<", "threshold": 0.99 }
     ]
   },
   "experiments": {

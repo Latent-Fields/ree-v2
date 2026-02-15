@@ -32,6 +32,38 @@ def load_json(path: Path) -> Any:
         return json.load(handle)
 
 
+def _apply_operation(lhs: float, op: str, rhs: float) -> bool:
+    operations = {
+        ">": lambda a, b: a > b,
+        "<": lambda a, b: a < b,
+        ">=": lambda a, b: a >= b,
+        "<=": lambda a, b: a <= b,
+        "==": lambda a, b: a == b,
+    }
+    if op not in operations:
+        raise KeyError(f"Unsupported stop-criteria op '{op}'")
+    return operations[op](lhs, rhs)
+
+
+def triggered_stop_criteria(
+    stop_criteria: dict[str, Any],
+    experiment_type: str,
+    metrics_values: dict[str, float],
+) -> list[str]:
+    triggered: list[str] = []
+    default_rules = stop_criteria.get("default", {}).get("fail_if", [])
+    experiment_rules = stop_criteria.get("experiments", {}).get(experiment_type, {}).get("fail_if", [])
+    for rule in [*default_rules, *experiment_rules]:
+        metric = str(rule.get("metric", ""))
+        if not metric or metric not in metrics_values:
+            continue
+        op = str(rule.get("op", ""))
+        threshold = float(rule.get("threshold", 0.0))
+        if _apply_operation(float(metrics_values[metric]), op, threshold):
+            triggered.append(f"{metric}{op}{threshold}")
+    return triggered
+
+
 def iter_run_dirs(runs_root: Path):
     for experiment_dir in sorted(runs_root.iterdir()):
         if not experiment_dir.is_dir():
@@ -85,6 +117,7 @@ def validate_run(
     manifest_validator: Draft202012Validator,
     metrics_validator: Draft202012Validator,
     adapter_validator: Draft202012Validator,
+    stop_criteria: dict[str, Any],
 ) -> list[str]:
     issues: list[str] = []
 
@@ -153,6 +186,12 @@ def validate_run(
                     f"{manifest_path}: missing triggered failure signatures {sorted(missing)}"
                 )
 
+            triggered_rules = triggered_stop_criteria(stop_criteria, experiment_type, values)
+            if triggered_rules and str(manifest.get("status")) != "FAIL":
+                issues.append(
+                    f"{manifest_path}: status must be FAIL when stop criteria trigger ({sorted(triggered_rules)})"
+                )
+
     artifacts = manifest.get("artifacts", {})
     adapter_rel_path = artifacts.get("adapter_signals_path")
     if adapter_rel_path:
@@ -218,6 +257,7 @@ def main() -> int:
     manifest_schema = load_json(REPO_ROOT / "contracts" / "schemas" / "v1" / "manifest.schema.json")
     metrics_schema = load_json(REPO_ROOT / "contracts" / "schemas" / "v1" / "metrics.schema.json")
     adapter_schema = load_json(REPO_ROOT / "contracts" / "schemas" / "v1" / "jepa_adapter_signals.v1.json")
+    stop_criteria = load_json(REPO_ROOT / "evidence" / "experiments" / "stop_criteria.v1.yaml")
 
     manifest_validator = Draft202012Validator(manifest_schema, format_checker=FormatChecker())
     metrics_validator = Draft202012Validator(metrics_schema, format_checker=FormatChecker())
@@ -235,6 +275,7 @@ def main() -> int:
                 manifest_validator,
                 metrics_validator,
                 adapter_validator,
+                stop_criteria,
             )
         )
 

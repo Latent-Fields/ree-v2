@@ -98,6 +98,8 @@ PROFILE_CATALOG: dict[str, ClaimProfile] = {
             FailureRule("ledger_editing", "ledger_edit_detected_count", ">", 0.0),
             FailureRule("explanation_policy_divergence", "explanation_policy_divergence_rate", ">", 0.05),
             FailureRule("domination_lock_in", "domination_lock_in_events", ">", 0.0),
+            FailureRule("bridge:commit_boundary_join_coverage_gap", "commit_boundary_join_coverage_rate", "<", 0.99),
+            FailureRule("bridge:tri_loop_trace_coverage_gap", "tri_loop_trace_coverage_rate", "<", 0.99),
         ),
     ),
     "jepa_anchor_ablation": ClaimProfile(
@@ -152,6 +154,8 @@ PROFILE_CATALOG: dict[str, ClaimProfile] = {
             FailureRule("mech058:ema_drift_under_shift", "representation_drift_rate", ">", 0.12),
             FailureRule("mech058:latent_cluster_collapse", "latent_rollout_consistency_rate", "<", 0.70),
             FailureRule("mech058:anchor_separation_collapse", "e1_e2_timescale_separation_ratio", "<", 1.50),
+            FailureRule("bridge:commit_boundary_join_coverage_gap", "commit_boundary_join_coverage_rate", "<", 0.99),
+            FailureRule("bridge:tri_loop_trace_coverage_gap", "tri_loop_trace_coverage_rate", "<", 0.99),
         ),
     ),
     "jepa_uncertainty_channels": ClaimProfile(
@@ -208,6 +212,8 @@ PROFILE_CATALOG: dict[str, ClaimProfile] = {
                 0.20,
             ),
             FailureRule("mech059:abstention_reliability_collapse", "uncertainty_coverage_rate", "<", 0.70),
+            FailureRule("bridge:commit_boundary_join_coverage_gap", "commit_boundary_join_coverage_rate", "<", 0.99),
+            FailureRule("bridge:tri_loop_trace_coverage_gap", "tri_loop_trace_coverage_rate", "<", 0.99),
         ),
     ),
     "commit_dual_error_channels": ClaimProfile(
@@ -264,6 +270,133 @@ PROFILE_CATALOG: dict[str, ClaimProfile] = {
             FailureRule("mech060:postcommit_channel_contamination", "cross_channel_leakage_rate", ">", 0.20),
             FailureRule("mech060:attribution_reliability_break", "post_commit_error_attribution_gain", "<", 0.25),
             FailureRule("mech060:commitment_reversal_spike", "commitment_reversal_rate", ">", 0.10),
+            FailureRule("bridge:commit_boundary_join_coverage_gap", "commit_boundary_join_coverage_rate", "<", 0.99),
+            FailureRule("bridge:tri_loop_trace_coverage_gap", "tri_loop_trace_coverage_rate", "<", 0.99),
+        ),
+    ),
+    "tri_loop_arbitration_policy": ClaimProfile(
+        experiment_type="tri_loop_arbitration_policy",
+        claim_id="Q-016",
+        evidence_class="simulation",
+        required_metric_keys=(
+            "tri_loop_gate_conflict_rate",
+            "tri_loop_policy_alignment_rate",
+            "tri_loop_arbitration_override_rate",
+        ),
+        default_seeds=(11, 29, 47),
+        conditions=(
+            ProfileCondition(
+                name="veto_lattice",
+                evidence_direction="supports",
+                include_uncertainty=False,
+                include_action_token=True,
+                resources=ResourceEstimate(runtime_minutes=52.0, memory_gb=7.2),
+                base_metrics={
+                    "tri_loop_gate_conflict_rate": 0.06,
+                    "tri_loop_policy_alignment_rate": 0.92,
+                    "tri_loop_arbitration_override_rate": 0.08,
+                    "latent_prediction_error_mean": 0.13,
+                    "latent_prediction_error_p95": 0.21,
+                    "latent_residual_coverage_rate": 0.98,
+                    "precision_input_completeness_rate": 0.97,
+                    "fatal_error_count": 0.0,
+                },
+            ),
+            ProfileCondition(
+                name="weighted_merge",
+                evidence_direction="mixed",
+                include_uncertainty=False,
+                include_action_token=True,
+                resources=ResourceEstimate(runtime_minutes=54.0, memory_gb=7.4),
+                base_metrics={
+                    "tri_loop_gate_conflict_rate": 0.12,
+                    "tri_loop_policy_alignment_rate": 0.86,
+                    "tri_loop_arbitration_override_rate": 0.14,
+                    "latent_prediction_error_mean": 0.16,
+                    "latent_prediction_error_p95": 0.24,
+                    "latent_residual_coverage_rate": 0.98,
+                    "precision_input_completeness_rate": 0.97,
+                    "fatal_error_count": 0.0,
+                },
+            ),
+            ProfileCondition(
+                name="mode_conditioned_precedence",
+                evidence_direction="supports",
+                include_uncertainty=False,
+                include_action_token=True,
+                resources=ResourceEstimate(runtime_minutes=56.0, memory_gb=7.6),
+                base_metrics={
+                    "tri_loop_gate_conflict_rate": 0.08,
+                    "tri_loop_policy_alignment_rate": 0.90,
+                    "tri_loop_arbitration_override_rate": 0.10,
+                    "latent_prediction_error_mean": 0.145,
+                    "latent_prediction_error_p95": 0.23,
+                    "latent_residual_coverage_rate": 0.98,
+                    "precision_input_completeness_rate": 0.97,
+                    "fatal_error_count": 0.0,
+                },
+            ),
+        ),
+        failure_rules=(
+            FailureRule("q016:tri_loop_conflict_spike", "tri_loop_gate_conflict_rate", ">", 0.15),
+            FailureRule("q016:tri_loop_alignment_break", "tri_loop_policy_alignment_rate", "<", 0.85),
+            FailureRule("q016:tri_loop_override_spike", "tri_loop_arbitration_override_rate", ">", 0.15),
+            FailureRule("bridge:commit_boundary_join_coverage_gap", "commit_boundary_join_coverage_rate", "<", 0.99),
+            FailureRule("bridge:tri_loop_trace_coverage_gap", "tri_loop_trace_coverage_rate", "<", 0.99),
+        ),
+    ),
+    "control_axis_ablation": ClaimProfile(
+        experiment_type="control_axis_ablation",
+        claim_id="Q-017",
+        evidence_class="ablation",
+        required_metric_keys=(
+            "control_axis_stability_index",
+            "control_axis_readout_entropy",
+            "control_axis_policy_loss_rate",
+        ),
+        default_seeds=(11, 29, 47),
+        conditions=(
+            ProfileCondition(
+                name="full_axis",
+                evidence_direction="supports",
+                include_uncertainty=False,
+                include_action_token=True,
+                resources=ResourceEstimate(runtime_minutes=58.0, memory_gb=7.5),
+                base_metrics={
+                    "control_axis_stability_index": 0.91,
+                    "control_axis_readout_entropy": 1.10,
+                    "control_axis_policy_loss_rate": 0.05,
+                    "latent_prediction_error_mean": 0.14,
+                    "latent_prediction_error_p95": 0.23,
+                    "latent_residual_coverage_rate": 0.98,
+                    "precision_input_completeness_rate": 0.95,
+                    "fatal_error_count": 0.0,
+                },
+            ),
+            ProfileCondition(
+                name="reduced_axis",
+                evidence_direction="weakens",
+                include_uncertainty=False,
+                include_action_token=True,
+                resources=ResourceEstimate(runtime_minutes=58.0, memory_gb=7.5),
+                base_metrics={
+                    "control_axis_stability_index": 0.73,
+                    "control_axis_readout_entropy": 0.62,
+                    "control_axis_policy_loss_rate": 0.17,
+                    "latent_prediction_error_mean": 0.19,
+                    "latent_prediction_error_p95": 0.28,
+                    "latent_residual_coverage_rate": 0.98,
+                    "precision_input_completeness_rate": 0.88,
+                    "fatal_error_count": 0.0,
+                },
+            ),
+        ),
+        failure_rules=(
+            FailureRule("q017:control_axis_stability_drop", "control_axis_stability_index", "<", 0.80),
+            FailureRule("q017:control_axis_policy_loss_spike", "control_axis_policy_loss_rate", ">", 0.12),
+            FailureRule("q017:control_axis_entropy_collapse", "control_axis_readout_entropy", "<", 0.75),
+            FailureRule("bridge:commit_boundary_join_coverage_gap", "commit_boundary_join_coverage_rate", "<", 0.99),
+            FailureRule("bridge:tri_loop_trace_coverage_gap", "tri_loop_trace_coverage_rate", "<", 0.99),
         ),
     ),
 }
@@ -310,6 +443,9 @@ def _apply_operation(lhs: float, op: str, rhs: float) -> bool:
 def _resolve_metric_key(metrics: dict[str, float], metric_key: str) -> float:
     if metric_key == "precision_minus_coverage":
         return metrics.get("precision_input_completeness_rate", 0.0) - metrics.get("uncertainty_coverage_rate", 0.0)
+    if metric_key in {"commit_boundary_join_coverage_rate", "tri_loop_trace_coverage_rate"}:
+        # Historical runs predate bridge metrics; treat missing as non-failing for backward compatibility.
+        return metrics.get(metric_key, 1.0)
     return metrics.get(metric_key, 0.0)
 
 
