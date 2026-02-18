@@ -1,0 +1,16 @@
+REE-v2 Qualification Harness
+
+Copyright (c) 2026 Daniel Golden
+
+This repository contains qualification harness code and experiment-pack tooling
+for the Reflective-Ethical Engine (REE).
+
+Third-party JEPA code/checkpoint provenance and license attribution are tracked in:
+- third_party/THIRD_PARTY_NOTICES.md
+- docs/third_party/JEPA_ATTRIBUTION_AND_CITATION.md
+- third_party/jepa_sources.lock.v1.json
+
+This work is provided "AS IS", without warranty of any kind.
+
+This project is not a medical device, not clinical software,
+and must not be used for clinical decision-making.

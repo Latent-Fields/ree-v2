@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite it using the metadata below."
+title: "REE-v2 Qualification Harness"
+abstract: >
+  Qualification harness for REE substrate claims with contract-compatible
+  experiment packs for REE_assembly ingestion.
+type: software
+authors:
+  - family-names: Golden
+    given-names: Daniel
+    affiliation: Independent Researcher
+year: 2026
+license: Apache-2.0
+repository-code: https://github.com/Latent-Fields/ree-v2
+keywords:
+  - reflective ethical engine
+  - qualification harness
+  - predictive processing
+  - jepa
+preferred-citation:
+  type: software
+  title: "Reflective-Ethical Engine (REE)"
+  authors:
+    - family-names: Golden
+      given-names: Daniel
+      affiliation: Independent Researcher
+  year: 2026
+  repository-code: https://github.com/Latent-Fields/REE_assembly/
+  license: Apache-2.0
