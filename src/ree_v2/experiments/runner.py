@@ -170,6 +170,40 @@ def _compute_metrics(experiment_type: str, rollout: Any) -> dict[str, float]:
     if experiment_type == "trajectory_integrity":
         uncertainties = rollout.signals.get("uncertainty", [])
         calibration = _mean([abs(u - e) for e, u in zip(errors, uncertainties)])
+        procrustes_drift = rollout.signals.get("procrustes_drift", [])
+        knn_overlap = rollout.signals.get("knn_overlap", [])
+        trustworthiness = rollout.signals.get("trustworthiness", [])
+        continuity = rollout.signals.get("continuity", [])
+        retrieval_skew = rollout.signals.get("retrieval_skew", [])
+        path_entropy = rollout.signals.get("path_entropy", [])
+        recall_error = rollout.signals.get("recall_error", [])
+        policy_error_events = rollout.events.get("policy_error", [])
+        conflict_signature_events = rollout.events.get("conflict_signature", [])
+
+        if not conflict_signature_events:
+            ledger = rollout.events.get("ledger_edit", [])
+            domination = rollout.events.get("domination_lock_in", [])
+            divergence_series = rollout.signals.get("divergence", [])
+            horizon = max(
+                len(errors),
+                len(ledger),
+                len(domination),
+                len(policy_error_events),
+                len(divergence_series),
+                1,
+            )
+            conflict_signature_events = []
+            for idx in range(horizon):
+                ledger_flag = bool(ledger[idx]) if idx < len(ledger) else False
+                domination_flag = bool(domination[idx]) if idx < len(domination) else False
+                policy_flag = bool(policy_error_events[idx]) if idx < len(policy_error_events) else False
+                divergence_flag = (
+                    bool(divergence_series[idx] > 0.08) if idx < len(divergence_series) else False
+                )
+                conflict_signature_events.append(
+                    1 if (ledger_flag or domination_flag or policy_flag or divergence_flag) else 0
+                )
+
         metrics.update(
             {
                 "ledger_edit_detected_count": float(sum(rollout.events.get("ledger_edit", []))),
@@ -180,6 +214,18 @@ def _compute_metrics(experiment_type: str, rollout: Any) -> dict[str, float]:
                     12,
                 ),
                 "latent_uncertainty_calibration_error": round(calibration, 12),
+                "latent_procrustes_drift": round(_mean(procrustes_drift), 12),
+                "latent_knn_overlap": round(_mean(knn_overlap), 12),
+                "latent_trustworthiness": round(_mean(trustworthiness), 12),
+                "latent_continuity": round(_mean(continuity), 12),
+                "hippocampal_retrieval_valence_skew": round(_mean(retrieval_skew), 12),
+                "hippocampal_path_selection_entropy": round(_mean(path_entropy), 12),
+                "valence_conditioned_recall_error": round(_mean(recall_error), 12),
+                "policy_error_rate": round(_mean([float(v) for v in policy_error_events]), 12),
+                "conflict_signature_rate": round(
+                    _mean([float(v) for v in conflict_signature_events]),
+                    12,
+                ),
             }
         )
 
@@ -592,6 +638,42 @@ def _channel_isolation_trace(experiment_type: str, rollout: Any) -> dict[str, fl
     }
 
 
+def _trajectory_integrity_modes(condition_name: str) -> dict[str, str]:
+    mapping = {
+        "trajectory_first_enabled": {
+            "valence_channel_mode": "off_or_neutral",
+            "hippocampal_mapping_mode": "adaptive",
+            "matrix_condition_id": "C3",
+        },
+        "trajectory_first_ablated": {
+            "valence_channel_mode": "on",
+            "hippocampal_mapping_mode": "adaptive",
+            "matrix_condition_id": "C1",
+        },
+        "valence_on_mapping_adaptive": {
+            "valence_channel_mode": "on",
+            "hippocampal_mapping_mode": "adaptive",
+            "matrix_condition_id": "C1",
+        },
+        "valence_on_mapping_frozen": {
+            "valence_channel_mode": "on",
+            "hippocampal_mapping_mode": "frozen",
+            "matrix_condition_id": "C2",
+        },
+        "valence_off_or_neutral_mapping_adaptive": {
+            "valence_channel_mode": "off_or_neutral",
+            "hippocampal_mapping_mode": "adaptive",
+            "matrix_condition_id": "C3",
+        },
+        "valence_off_or_neutral_mapping_frozen": {
+            "valence_channel_mode": "off_or_neutral",
+            "hippocampal_mapping_mode": "frozen",
+            "matrix_condition_id": "C4",
+        },
+    }
+    return dict(mapping.get(condition_name, {}))
+
+
 def _summary_text(
     *,
     experiment_type: str,
@@ -805,6 +887,11 @@ def execute_profile_condition(
                 "",
             ),
             "require_real_jepa": require_real_jepa,
+            **(
+                _trajectory_integrity_modes(condition_name)
+                if canonical_experiment_type == "trajectory_integrity"
+                else {}
+            ),
         },
         "stop_criteria_version": "stop_criteria/v1",
         "claim_ids_tested": [profile.claim_id],

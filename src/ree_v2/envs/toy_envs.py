@@ -54,6 +54,16 @@ def _trajectory_integrity_rollout(condition_name: str, seed: int, steps: int) ->
             "reversal_prob": 0.042,
             "divergence_base": 0.022,
             "uncertainty_scale": 1.05,
+            "policy_error_prob": 0.030,
+            "procrustes_base": 0.083,
+            "knn_base": 0.915,
+            "trustworthiness_base": 0.924,
+            "continuity_base": 0.917,
+            "retrieval_skew_base": 0.064,
+            "path_entropy_base": 0.452,
+            "recall_error_base": 0.061,
+            "valence_mode": "off_or_neutral",
+            "mapping_mode": "adaptive",
         },
         "trajectory_first_ablated": {
             "obs_noise": 0.055,
@@ -63,6 +73,92 @@ def _trajectory_integrity_rollout(condition_name: str, seed: int, steps: int) ->
             "reversal_prob": 0.118,
             "divergence_base": 0.081,
             "uncertainty_scale": 0.88,
+            "policy_error_prob": 0.115,
+            "procrustes_base": 0.123,
+            "knn_base": 0.846,
+            "trustworthiness_base": 0.862,
+            "continuity_base": 0.853,
+            "retrieval_skew_base": 0.274,
+            "path_entropy_base": 0.684,
+            "recall_error_base": 0.143,
+            "valence_mode": "on",
+            "mapping_mode": "adaptive",
+        },
+        "valence_on_mapping_adaptive": {
+            "obs_noise": 0.051,
+            "error_sigma": 0.061,
+            "ledger_prob": 0.041,
+            "domination_prob": 0.024,
+            "reversal_prob": 0.093,
+            "divergence_base": 0.067,
+            "uncertainty_scale": 0.95,
+            "policy_error_prob": 0.102,
+            "procrustes_base": 0.121,
+            "knn_base": 0.861,
+            "trustworthiness_base": 0.877,
+            "continuity_base": 0.866,
+            "retrieval_skew_base": 0.286,
+            "path_entropy_base": 0.672,
+            "recall_error_base": 0.141,
+            "valence_mode": "on",
+            "mapping_mode": "adaptive",
+        },
+        "valence_on_mapping_frozen": {
+            "obs_noise": 0.046,
+            "error_sigma": 0.055,
+            "ledger_prob": 0.030,
+            "domination_prob": 0.018,
+            "reversal_prob": 0.073,
+            "divergence_base": 0.056,
+            "uncertainty_scale": 0.98,
+            "policy_error_prob": 0.079,
+            "procrustes_base": 0.162,
+            "knn_base": 0.812,
+            "trustworthiness_base": 0.824,
+            "continuity_base": 0.815,
+            "retrieval_skew_base": 0.114,
+            "path_entropy_base": 0.538,
+            "recall_error_base": 0.102,
+            "valence_mode": "on",
+            "mapping_mode": "frozen",
+        },
+        "valence_off_or_neutral_mapping_adaptive": {
+            "obs_noise": 0.037,
+            "error_sigma": 0.041,
+            "ledger_prob": 0.011,
+            "domination_prob": 0.006,
+            "reversal_prob": 0.046,
+            "divergence_base": 0.028,
+            "uncertainty_scale": 1.03,
+            "policy_error_prob": 0.038,
+            "procrustes_base": 0.092,
+            "knn_base": 0.901,
+            "trustworthiness_base": 0.914,
+            "continuity_base": 0.903,
+            "retrieval_skew_base": 0.072,
+            "path_entropy_base": 0.472,
+            "recall_error_base": 0.073,
+            "valence_mode": "off_or_neutral",
+            "mapping_mode": "adaptive",
+        },
+        "valence_off_or_neutral_mapping_frozen": {
+            "obs_noise": 0.033,
+            "error_sigma": 0.036,
+            "ledger_prob": 0.008,
+            "domination_prob": 0.004,
+            "reversal_prob": 0.036,
+            "divergence_base": 0.024,
+            "uncertainty_scale": 1.06,
+            "policy_error_prob": 0.029,
+            "procrustes_base": 0.081,
+            "knn_base": 0.923,
+            "trustworthiness_base": 0.933,
+            "continuity_base": 0.924,
+            "retrieval_skew_base": 0.054,
+            "path_entropy_base": 0.444,
+            "recall_error_base": 0.064,
+            "valence_mode": "off_or_neutral",
+            "mapping_mode": "frozen",
         },
     }[condition_name]
 
@@ -72,11 +168,20 @@ def _trajectory_integrity_rollout(condition_name: str, seed: int, steps: int) ->
     latent_errors: list[float] = []
     uncertainties: list[float] = []
     divergence_series: list[float] = []
+    procrustes_drift_series: list[float] = []
+    knn_overlap_series: list[float] = []
+    trustworthiness_series: list[float] = []
+    continuity_series: list[float] = []
+    retrieval_skew_series: list[float] = []
+    path_entropy_series: list[float] = []
+    recall_error_series: list[float] = []
 
     events = {
         "ledger_edit": [],
         "domination_lock_in": [],
         "commitment_reversal": [],
+        "policy_error": [],
+        "conflict_signature": [],
         "residual_present": [],
         "precision_complete": [],
     }
@@ -90,25 +195,72 @@ def _trajectory_integrity_rollout(condition_name: str, seed: int, steps: int) ->
         uncertainty = max(0.0, (error * cfg["uncertainty_scale"]) + rng.gauss(0.0, 0.01))
 
         divergence = max(0.0, min(1.0, cfg["divergence_base"] + abs(rng.gauss(0.0, 0.011))))
+        procrustes_drift = max(0.0, cfg["procrustes_base"] + abs(rng.gauss(0.0, 0.014)))
+        knn_overlap = max(0.0, min(1.0, cfg["knn_base"] - abs(rng.gauss(0.0, 0.012))))
+        trustworthiness = max(
+            0.0,
+            min(1.0, cfg["trustworthiness_base"] - abs(rng.gauss(0.0, 0.013))),
+        )
+        continuity = max(0.0, min(1.0, cfg["continuity_base"] - abs(rng.gauss(0.0, 0.013))))
+
+        valence_adjust = 0.02 if cfg["valence_mode"] == "on" else -0.005
+        mapping_adjust = 0.035 if cfg["mapping_mode"] == "adaptive" else -0.012
+        retrieval_skew = max(
+            0.0,
+            cfg["retrieval_skew_base"] + valence_adjust + mapping_adjust + rng.gauss(0.0, 0.016),
+        )
+        path_entropy = max(
+            0.0,
+            min(
+                1.0,
+                cfg["path_entropy_base"] + (0.028 if cfg["mapping_mode"] == "adaptive" else -0.01) + rng.gauss(0.0, 0.019),
+            ),
+        )
+        recall_error = max(
+            0.0,
+            cfg["recall_error_base"] + (0.018 if cfg["valence_mode"] == "on" else -0.004) + abs(rng.gauss(0.0, 0.011)),
+        )
 
         latent_errors.append(error)
         uncertainties.append(uncertainty)
         divergence_series.append(divergence)
+        procrustes_drift_series.append(procrustes_drift)
+        knn_overlap_series.append(knn_overlap)
+        trustworthiness_series.append(trustworthiness)
+        continuity_series.append(continuity)
+        retrieval_skew_series.append(retrieval_skew)
+        path_entropy_series.append(path_entropy)
+        recall_error_series.append(recall_error)
 
-        events["ledger_edit"].append(1 if rng.random() < cfg["ledger_prob"] else 0)
-        events["domination_lock_in"].append(1 if rng.random() < cfg["domination_prob"] else 0)
-        events["commitment_reversal"].append(1 if rng.random() < cfg["reversal_prob"] else 0)
+        ledger_flag = 1 if rng.random() < cfg["ledger_prob"] else 0
+        domination_flag = 1 if rng.random() < cfg["domination_prob"] else 0
+        reversal_flag = 1 if rng.random() < cfg["reversal_prob"] else 0
+        policy_error_flag = 1 if rng.random() < cfg["policy_error_prob"] else 0
+        conflict_flag = 1 if (ledger_flag or domination_flag or policy_error_flag or divergence > 0.08) else 0
+
+        events["ledger_edit"].append(ledger_flag)
+        events["domination_lock_in"].append(domination_flag)
+        events["commitment_reversal"].append(reversal_flag)
+        events["policy_error"].append(policy_error_flag)
+        events["conflict_signature"].append(conflict_flag)
         events["residual_present"].append(1)
         events["precision_complete"].append(1)
 
         rollout.context_values.append(state)
-        rollout.actions.append(0.0)
+        rollout.actions.append(1.0 if policy_error_flag == 0 else -1.0)
 
     rollout.signals.update(
         {
             "latent_error": latent_errors,
             "uncertainty": uncertainties,
             "divergence": divergence_series,
+            "procrustes_drift": procrustes_drift_series,
+            "knn_overlap": knn_overlap_series,
+            "trustworthiness": trustworthiness_series,
+            "continuity": continuity_series,
+            "retrieval_skew": retrieval_skew_series,
+            "path_entropy": path_entropy_series,
+            "recall_error": recall_error_series,
         }
     )
     rollout.events.update(events)
