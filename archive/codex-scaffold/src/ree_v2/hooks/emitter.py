@@ -1,4 +1,4 @@
-"""Hook payload emitter for qualification and planned stubs."""
+"""Hook payload emitter for qualification bridge contracts."""
 
 from __future__ import annotations
 
@@ -38,31 +38,46 @@ def emit_v2_hooks(
     return hooks
 
 
-def emit_planned_stub_hooks() -> dict[str, dict[str, Any]]:
+def emit_bridge_commit_hooks(
+    *,
+    pre_commit_error: float,
+    post_commit_error: float,
+    candidate_trajectory_id: str,
+    committed_trajectory_id: str,
+    commitment_trace_id: str,
+    candidate_source: str,
+    candidate_horizon: int,
+) -> dict[str, dict[str, Any]]:
     return {
         "HK-101": {
-            "hook_id": "HK-101",
-            "planned_stub": True,
-            "pre_commit_error": 0.0,
-            "candidate_trajectory_id": "stub-candidate-001",
+            "pre_commit_error": pre_commit_error,
+            "candidate_trajectory_id": candidate_trajectory_id,
         },
         "HK-102": {
-            "hook_id": "HK-102",
-            "planned_stub": True,
-            "post_commit_error": 0.0,
-            "committed_trajectory_id": "stub-commit-001",
+            "post_commit_error": post_commit_error,
+            "committed_trajectory_id": committed_trajectory_id,
         },
         "HK-103": {
-            "hook_id": "HK-103",
-            "planned_stub": True,
-            "commitment_trace_id": "stub-trace-001",
-            "committed_trajectory_id": "stub-commit-001",
+            "commitment_trace_id": commitment_trace_id,
+            "committed_trajectory_id": committed_trajectory_id,
         },
         "HK-104": {
-            "hook_id": "HK-104",
-            "planned_stub": True,
-            "candidate_trajectory_id": "stub-candidate-001",
-            "candidate_source": "bootstrap_stub",
-            "candidate_horizon": 3,
+            "candidate_trajectory_id": candidate_trajectory_id,
+            "candidate_source": candidate_source,
+            "candidate_horizon": candidate_horizon,
         },
     }
+
+
+def emit_planned_stub_hooks() -> dict[str, dict[str, Any]]:
+    """Backward-compatible shim for callers expecting planned stub hooks."""
+
+    return emit_bridge_commit_hooks(
+        pre_commit_error=0.0,
+        post_commit_error=0.0,
+        candidate_trajectory_id="stub-candidate-001",
+        committed_trajectory_id="stub-commit-001",
+        commitment_trace_id="stub-trace-001",
+        candidate_source="bootstrap_stub",
+        candidate_horizon=3,
+    )

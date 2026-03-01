@@ -121,6 +121,81 @@
         }
       },
       "additionalProperties": true
+    },
+    "HK-101": {
+      "type": "object",
+      "required": [
+        "pre_commit_error",
+        "candidate_trajectory_id"
+      ],
+      "properties": {
+        "pre_commit_error": {
+          "type": "number"
+        },
+        "candidate_trajectory_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "HK-102": {
+      "type": "object",
+      "required": [
+        "post_commit_error",
+        "committed_trajectory_id"
+      ],
+      "properties": {
+        "post_commit_error": {
+          "type": "number"
+        },
+        "committed_trajectory_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "HK-103": {
+      "type": "object",
+      "required": [
+        "commitment_trace_id",
+        "committed_trajectory_id"
+      ],
+      "properties": {
+        "commitment_trace_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "committed_trajectory_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "HK-104": {
+      "type": "object",
+      "required": [
+        "candidate_trajectory_id",
+        "candidate_source",
+        "candidate_horizon"
+      ],
+      "properties": {
+        "candidate_trajectory_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_horizon": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": true

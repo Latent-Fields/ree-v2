@@ -17,7 +17,7 @@ from ree_v2.experiments.profiles import (
     get_profile,
     resolve_execution_experiment_type,
 )
-from ree_v2.hooks.emitter import emit_planned_stub_hooks, emit_v2_hooks
+from ree_v2.hooks.emitter import emit_bridge_commit_hooks, emit_v2_hooks
 from ree_v2.latent_substrate.encoder import LatentEncoder
 from ree_v2.latent_substrate.jepa_inference_backend import JEPAInferenceBackend
 from ree_v2.latent_substrate.predictor import FastPredictor
@@ -28,7 +28,7 @@ from ree_v2.signal_export.metrics_export import build_metrics_payload
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RUNNER_NAME = "ree-v2-qualification-harness"
-RUNNER_VERSION = "toy_env_runner.v1"
+RUNNER_VERSION = "toy_env_runner.v2"
 _CHECKPOINT_DIGEST_CACHE: dict[str, tuple[str, int]] = {}
 
 
@@ -445,6 +445,218 @@ def _build_jepa_inference_outputs(
     }
 
 
+def _absolute_series(values: list[float]) -> list[float]:
+    return [abs(value) for value in values]
+
+
+def _series_delta(lhs: list[float], rhs: list[float]) -> list[float]:
+    return [rhs[idx] - lhs[idx] for idx in range(min(len(lhs), len(rhs)))]
+
+
+def _derive_bridge_stream_errors(*, rollout: Any, metrics_values: dict[str, float]) -> tuple[float, float]:
+    pre_signal = rollout.signals.get("pre_signal", [])
+    post_signal = rollout.signals.get("post_signal", [])
+    realized_signal = rollout.signals.get("realized_signal", [])
+
+    if pre_signal:
+        pre_commit_error = _mean(_absolute_series(pre_signal))
+    else:
+        pre_commit_error = abs(float(metrics_values.get("latent_prediction_error_mean", 0.0)))
+
+    if post_signal and realized_signal:
+        post_commit_error = _mean(_absolute_series(_series_delta(post_signal, realized_signal)))
+    else:
+        post_commit_error = abs(float(metrics_values.get("latent_prediction_error_p95", 0.0)))
+
+    return round(pre_commit_error, 12), round(post_commit_error, 12)
+
+
+def _build_task_loop_object(
+    *,
+    commit_boundary: dict[str, Any],
+    rollout: Any,
+    backend_outputs: dict[str, Any],
+    pre_commit_error: float,
+    post_commit_error: float,
+) -> dict[str, Any]:
+    actions = rollout.actions if rollout.actions else [0.0]
+    action_tail = actions[-3:]
+    approach = _mean([max(value, 0.0) for value in action_tail])
+    avoid = _mean([abs(min(value, 0.0)) for value in action_tail])
+    urgency = _quantile(_absolute_series(rollout.signals.get("latent_error", [])), 0.85)
+
+    transition_ops = [
+        {
+            "op_id": f"transition_{idx}",
+            "delta": round(value, 12),
+            "source": "action_stream",
+        }
+        for idx, value in enumerate(action_tail)
+    ]
+    if not transition_ops:
+        transition_ops = [{"op_id": "transition_0", "delta": 0.0, "source": "noop"}]
+
+    latency_window = max(1, min(rollout.steps, 8))
+    path_nodes = [f"n{idx}" for idx in range(latency_window)]
+    path_edges = [
+        {
+            "from": path_nodes[idx],
+            "to": path_nodes[idx + 1],
+            "weight": round(abs(actions[idx]) if idx < len(actions) else 0.0, 12),
+        }
+        for idx in range(max(0, latency_window - 1))
+    ]
+
+    gate_conflicts = rollout.events.get("gate_conflict", [])
+    stop_required = bool(gate_conflicts and sum(gate_conflicts) > 0)
+    if not stop_required and post_commit_error > 0.35:
+        stop_required = True
+
+    return {
+        "schema_version": "task_loop_object/v1",
+        "object_token": f"obj-{commit_boundary['commit_id']}",
+        "valence_vec": {
+            "approach": round(approach, 12),
+            "avoid": round(avoid, 12),
+            "urgency": round(urgency, 12),
+        },
+        "transition_ops": transition_ops,
+        "error_vec": {
+            "pre_commit_error": pre_commit_error,
+            "post_commit_error": post_commit_error,
+            "latent_error_mean": round(_mean(rollout.signals.get("latent_error", [])), 12),
+        },
+        "stop_op": {
+            "opcode": "inhibit" if stop_required else "continue",
+            "reason": "gate_conflict_or_high_realized_error" if stop_required else "none",
+        },
+        "time_env": {
+            "onset_step": 0,
+            "issued_at_step": commit_boundary["issued_at_step"],
+            "expected_duration_steps": int(rollout.steps),
+            "deadline_step": int(commit_boundary["issued_at_step"] + commit_boundary["ttl_steps"]),
+        },
+        "identity_tag": {
+            "ownership": "self_generated",
+            "source_backend": backend_outputs.get("backend_metadata", {}).get("backend", "unknown"),
+            "source_model": backend_outputs.get("backend_metadata", {}).get("model_source", "unknown"),
+        },
+        "path_graph": {
+            "nodes": path_nodes,
+            "edges": path_edges,
+        },
+    }
+
+
+def _build_coupling_graph(
+    *,
+    control_axes: dict[str, Any],
+    tri_loop_trace: dict[str, Any],
+) -> dict[str, Any]:
+    weights = control_axes.get("readout_weights", [0.34, 0.33, 0.33])
+    w0 = float(weights[0]) if len(weights) > 0 else 0.34
+    w1 = float(weights[1]) if len(weights) > 1 else 0.33
+    w2 = float(weights[2]) if len(weights) > 2 else 0.33
+
+    return {
+        "schema_version": "coupling_graph/v1",
+        "nodes": [
+            {"node_id": "sensor_adapter", "latent_space": "L_ingress"},
+            {"node_id": "e1_world_model", "latent_space": "L_world"},
+            {"node_id": "e2_fast_predictor", "latent_space": "L_fast"},
+            {"node_id": "hippocampal_systems", "latent_space": "L_path"},
+            {"node_id": "e3_selector", "latent_space": "L_task"},
+            {"node_id": "control_plane", "latent_space": "L_control"},
+            {"node_id": "action_gate", "latent_space": "L_motor"},
+        ],
+        "edges": [
+            {
+                "from": "e1_world_model",
+                "to": "e2_fast_predictor",
+                "coupling_operator": "predictive_forward_projection",
+                "precision": round(w0, 12),
+                "gating_rule": "post_predict",
+            },
+            {
+                "from": "e2_fast_predictor",
+                "to": "hippocampal_systems",
+                "coupling_operator": "candidate_rollout_seed",
+                "precision": round(w1, 12),
+                "gating_rule": "pre_commit",
+            },
+            {
+                "from": "hippocampal_systems",
+                "to": "e3_selector",
+                "coupling_operator": "trajectory_candidate_bundle",
+                "precision": round(w0, 12),
+                "gating_rule": "tri_loop_arbitration",
+            },
+            {
+                "from": "control_plane",
+                "to": "action_gate",
+                "coupling_operator": "commit_boundary_projection",
+                "precision": round(w2, 12),
+                "gating_rule": tri_loop_trace.get("gate_arbitration_policy", "single_stream"),
+            },
+        ],
+        "stream_routes": {
+            "pre_commit": ["HK-101", "HK-104"],
+            "post_commit": ["HK-102", "HK-103"],
+        },
+    }
+
+
+def _build_bridge_trace_artifacts(
+    *,
+    commit_boundary: dict[str, Any],
+    rollout: Any,
+    bridge_hooks: dict[str, dict[str, Any]],
+    commitment_trace_id: str,
+) -> dict[str, dict[str, Any]]:
+    pre_signal = rollout.signals.get("pre_signal", [])
+    post_signal = rollout.signals.get("post_signal", [])
+    realized_signal = rollout.signals.get("realized_signal", [])
+    latent_error = rollout.signals.get("latent_error", [])
+
+    pre_samples = pre_signal if pre_signal else latent_error
+    post_samples = (
+        _series_delta(post_signal, realized_signal)
+        if post_signal and realized_signal
+        else latent_error
+    )
+
+    return {
+        "pre_commit_error_stream.v1.json": {
+            "schema_version": "pre_commit_error_stream/v1",
+            "hook_id": "HK-101",
+            "commit_id": commit_boundary["commit_id"],
+            **bridge_hooks["HK-101"],
+            "samples": [round(value, 12) for value in pre_samples],
+        },
+        "post_commit_error_stream.v1.json": {
+            "schema_version": "post_commit_error_stream/v1",
+            "hook_id": "HK-102",
+            "commit_id": commit_boundary["commit_id"],
+            **bridge_hooks["HK-102"],
+            "samples": [round(value, 12) for value in post_samples],
+        },
+        "commitment_trace.v1.json": {
+            "schema_version": "commitment_trace/v1",
+            "hook_id": "HK-103",
+            "commit_id": commit_boundary["commit_id"],
+            "commitment_trace_id": commitment_trace_id,
+            "boundary": commit_boundary,
+            "committed_trajectory_id": bridge_hooks["HK-103"]["committed_trajectory_id"],
+        },
+        "rollout_candidate_metadata.v1.json": {
+            "schema_version": "rollout_candidate_metadata/v1",
+            "hook_id": "HK-104",
+            "commit_id": commit_boundary["commit_id"],
+            **bridge_hooks["HK-104"],
+        },
+    }
+
+
 def _build_hook_payloads_from_backend_outputs(
     *,
     experiment_type: str,
@@ -454,6 +666,7 @@ def _build_hook_payloads_from_backend_outputs(
     include_action_token: bool,
     backend_outputs: dict[str, Any],
     rollout: Any,
+    metrics_values: dict[str, float],
 ) -> dict[str, Any]:
     trajectory_id = f"{experiment_type}:{condition_name}:seed{seed}"
     commit_material = {
@@ -462,9 +675,38 @@ def _build_hook_payloads_from_backend_outputs(
         "backend": backend_outputs.get("backend_metadata", {}).get("backend", "unknown"),
         "z_t_head": backend_outputs["z_t"][:3],
     }
+    trajectory_hash = _stable_hash(
+        {
+            "trajectory_id": trajectory_id,
+            "condition_name": condition_name,
+            "z_hat": backend_outputs["z_hat"],
+            "actions_tail": rollout.actions[-5:],
+        }
+    )[:24]
+    policy_hash = _stable_hash(
+        {
+            "experiment_type": experiment_type,
+            "condition_name": condition_name,
+            "include_uncertainty": include_uncertainty,
+            "include_action_token": include_action_token,
+        }
+    )[:24]
+    caps_hash = _stable_hash(
+        {
+            "backend": backend_outputs.get("backend_metadata", {}).get("backend", "unknown"),
+            "model_source": backend_outputs.get("backend_metadata", {}).get("model_source", "unknown"),
+        }
+    )[:24]
+    verifier_result_hash = _stable_hash(
+        {
+            "latent_prediction_error_mean": metrics_values.get("latent_prediction_error_mean", 0.0),
+            "latent_prediction_error_p95": metrics_values.get("latent_prediction_error_p95", 0.0),
+        }
+    )[:24]
     commit_boundary = {
         "commit_id": f"cb-{_stable_hash(commit_material)[:16]}",
         "trajectory_id": trajectory_id,
+        "trajectory_hash": trajectory_hash,
         "issued_at_step": max(rollout.steps - 1, 0),
         "ttl_steps": max(1, min(rollout.steps, 64)),
         "mode_snapshot": {
@@ -472,6 +714,15 @@ def _build_hook_payloads_from_backend_outputs(
             "condition_name": condition_name,
             "include_uncertainty": include_uncertainty,
             "include_action_token": include_action_token,
+        },
+        "intended_action_labels": ["actuate"] if include_action_token else ["observe"],
+        "authority_path": ["control_plane", "e3_selector", "action_gate"],
+        "policy_hash": policy_hash,
+        "caps_hash": caps_hash,
+        "verifier_result_hash": verifier_result_hash,
+        "uncertainty_snapshot": {
+            "enabled": include_uncertainty,
+            "dispersion": float((backend_outputs.get("uncertainty_latent") or {}).get("dispersion", 0.0)),
         },
     }
 
@@ -514,6 +765,40 @@ def _build_hook_payloads_from_backend_outputs(
         "phasic": round(_stddev(latent_errors), 12),
         "readout_weights": [round(value / normalizer, 12) for value in raw_weights],
     }
+    pre_commit_error, post_commit_error = _derive_bridge_stream_errors(
+        rollout=rollout,
+        metrics_values=metrics_values,
+    )
+    candidate_horizon = max(1, len(backend_outputs["z_hat"]))
+    candidate_trajectory_id = f"{trajectory_id}:candidate:{_stable_hash({'h': candidate_horizon, 'seed': seed})[:10]}"
+    committed_trajectory_id = trajectory_id
+    commitment_trace_id = f"ct-{_stable_hash({'commit_id': commit_boundary['commit_id'], 'trajectory': trajectory_id})[:16]}"
+    bridge_hooks = emit_bridge_commit_hooks(
+        pre_commit_error=pre_commit_error,
+        post_commit_error=post_commit_error,
+        candidate_trajectory_id=candidate_trajectory_id,
+        committed_trajectory_id=committed_trajectory_id,
+        commitment_trace_id=commitment_trace_id,
+        candidate_source=backend_outputs.get("backend_metadata", {}).get("model_source", "unknown"),
+        candidate_horizon=candidate_horizon,
+    )
+    task_loop_object = _build_task_loop_object(
+        commit_boundary=commit_boundary,
+        rollout=rollout,
+        backend_outputs=backend_outputs,
+        pre_commit_error=pre_commit_error,
+        post_commit_error=post_commit_error,
+    )
+    coupling_graph = _build_coupling_graph(
+        control_axes=control_axes,
+        tri_loop_trace=tri_loop_trace,
+    )
+    trace_artifacts = _build_bridge_trace_artifacts(
+        commit_boundary=commit_boundary,
+        rollout=rollout,
+        bridge_hooks=bridge_hooks,
+        commitment_trace_id=commitment_trace_id,
+    )
 
     v2_hooks = emit_v2_hooks(
         z_t=backend_outputs["z_t"],
@@ -531,7 +816,12 @@ def _build_hook_payloads_from_backend_outputs(
 
     return {
         "required": v2_hooks,
-        "planned_stubs": emit_planned_stub_hooks(),
+        "bridge_active": bridge_hooks,
+        # Backward-compatible key retained for legacy reporters.
+        "planned_stubs": bridge_hooks,
+        "task_loop_object": task_loop_object,
+        "coupling_graph": coupling_graph,
+        "trace_artifacts": trace_artifacts,
     }
 
 
@@ -694,7 +984,11 @@ def _summary_text(
             continue
         metric_lines.append(f"- {key}: `{metrics[key]}`")
 
-    hook_ids = sorted(hook_payloads["required"].keys()) + sorted(hook_payloads["planned_stubs"].keys())
+    hook_ids = sorted(
+        set(hook_payloads["required"].keys())
+        | set(hook_payloads.get("bridge_active", {}).keys())
+        | set(hook_payloads.get("planned_stubs", {}).keys())
+    )
     lines = [
         f"# {experiment_type} run summary",
         "",
@@ -789,6 +1083,7 @@ def execute_profile_condition(
         include_action_token=condition.include_action_token,
         backend_outputs=backend_outputs,
         rollout=rollout,
+        metrics_values=metrics_values,
     )
 
     failure_signatures = evaluate_failure_signatures(experiment_type, metrics_values)
@@ -902,10 +1197,9 @@ def execute_profile_condition(
             "metrics_path": "metrics.json",
             "summary_path": "summary.md",
             "adapter_signals_path": "jepa_adapter_signals.v1.json",
+            "traces_dir": "traces",
         },
     }
-    if channel_trace is not None:
-        manifest["artifacts"]["traces_dir"] = "traces"
 
     metrics_payload = build_metrics_payload(metrics_values)
 
@@ -952,9 +1246,13 @@ def execute_profile_condition(
         _write_json(run_dir / "manifest.json", manifest)
         _write_json(run_dir / "metrics.json", metrics_payload)
         _write_json(run_dir / "jepa_adapter_signals.v1.json", adapter_signals)
+        traces_dir = run_dir / "traces"
+        traces_dir.mkdir(parents=True, exist_ok=True)
+        for rel_path, payload in hook_payloads.get("trace_artifacts", {}).items():
+            _write_json(traces_dir / rel_path, payload)
+        _write_json(traces_dir / "task_loop_object.v1.json", hook_payloads["task_loop_object"])
+        _write_json(traces_dir / "coupling_graph.v1.json", hook_payloads["coupling_graph"])
         if channel_trace is not None:
-            traces_dir = run_dir / "traces"
-            traces_dir.mkdir(parents=True, exist_ok=True)
             _write_json(traces_dir / "channel_isolation.v1.json", channel_trace)
         (run_dir / "summary.md").write_text(summary + "\n", encoding="utf-8")
 

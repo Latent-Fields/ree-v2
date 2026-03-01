@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate required v2 hooks and planned stub hook payload surfaces."""
+"""Validate required v2 hooks and active bridge hook payload surfaces."""
 
 from __future__ import annotations
 
@@ -15,13 +15,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from ree_v2.hooks.emitter import emit_planned_stub_hooks, emit_v2_hooks
+from ree_v2.hooks.emitter import emit_bridge_commit_hooks, emit_v2_hooks
 from ree_v2.latent_substrate.encoder import LatentEncoder
 from ree_v2.latent_substrate.predictor import FastPredictor
 from ree_v2.sensor_adapter.adapter import SensorAdapter
 
 REQUIRED_IDS = [f"HK-00{i}" for i in range(1, 10)]
-STUB_IDS = [f"HK-10{i}" for i in range(1, 5)]
+BRIDGE_IDS = [f"HK-10{i}" for i in range(1, 5)]
 
 
 def load_registry(path: Path) -> dict[str, Any]:
@@ -52,7 +52,7 @@ def main() -> int:
     bridge_validator = Draft202012Validator(bridge_schema)
 
     issues: list[str] = []
-    for hook_id in REQUIRED_IDS + STUB_IDS:
+    for hook_id in REQUIRED_IDS + BRIDGE_IDS:
         if hook_id not in hooks:
             issues.append(f"missing hook_id in registry: {hook_id}")
 
@@ -98,10 +98,18 @@ def main() -> int:
             "readout_weights": [0.5, 0.3, 0.2],
         },
     )
-    emitted_stubs = emit_planned_stub_hooks()
+    emitted_bridge = emit_bridge_commit_hooks(
+        pre_commit_error=0.173,
+        post_commit_error=0.142,
+        candidate_trajectory_id="trajectory-candidate-001",
+        committed_trajectory_id="trajectory-commit-001",
+        commitment_trace_id="ct-validate-surface-001",
+        candidate_source="validation_harness",
+        candidate_horizon=3,
+    )
     bridge_payloads = {
-        hook_id: emitted_required.get(hook_id)
-        for hook_id in ("HK-007", "HK-008", "HK-009")
+        hook_id: emitted_required.get(hook_id, emitted_bridge.get(hook_id))
+        for hook_id in ("HK-007", "HK-008", "HK-009", "HK-101", "HK-102", "HK-103", "HK-104")
     }
     for error in sorted(bridge_validator.iter_errors(bridge_payloads), key=lambda item: list(item.path)):
         path = ".".join(str(item) for item in error.path) or "$"
@@ -118,17 +126,15 @@ def main() -> int:
             if not has_key_path(payload, key_path):
                 issues.append(f"{hook_id}: payload missing required key field '{key_path}'")
 
-    for hook_id in STUB_IDS:
+    for hook_id in BRIDGE_IDS:
         hook = hooks.get(hook_id)
-        payload = emitted_stubs.get(hook_id)
+        payload = emitted_bridge.get(hook_id)
         if payload is None:
-            issues.append(f"{hook_id}: planned stub payload missing")
+            issues.append(f"{hook_id}: bridge hook payload missing")
             continue
-        if payload.get("planned_stub") is not True:
-            issues.append(f"{hook_id}: planned stub payload missing planned_stub=true")
         for key_path in hook.get("key_fields", []):
             if not has_key_path(payload, key_path):
-                issues.append(f"{hook_id}: planned stub missing key field '{key_path}'")
+                issues.append(f"{hook_id}: bridge payload missing key field '{key_path}'")
 
     if issues:
         print(f"FAIL: hook surface validation found {len(issues)} issue(s)")
@@ -136,7 +142,7 @@ def main() -> int:
             print(f" - {issue}")
         return 1
 
-    print("PASS: hook surface contract verified for HK-001..HK-009 and HK-101..HK-104")
+    print("PASS: hook surface contract verified for HK-001..HK-009 and active HK-101..HK-104")
     return 0
 
 

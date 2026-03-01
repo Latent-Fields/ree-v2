@@ -193,6 +193,11 @@ def validate_run(
                 )
 
     artifacts = manifest.get("artifacts", {})
+    traces_dir_rel = artifacts.get("traces_dir")
+    runner = manifest.get("runner", {})
+    runner_version = str(runner.get("version", ""))
+    requires_bridge_trace_bundle = runner_version.startswith("toy_env_runner.v2")
+
     adapter_rel_path = artifacts.get("adapter_signals_path")
     if adapter_rel_path:
         adapter_path = run_dir / adapter_rel_path
@@ -219,8 +224,68 @@ def validate_run(
             if adapter_payload.get("run_id") != run_id:
                 issues.append(f"{adapter_path}: run_id mismatch dir={run_id} payload={adapter_payload.get('run_id')}")
 
+    if requires_bridge_trace_bundle:
+        if not traces_dir_rel:
+            issues.append(
+                f"{manifest_path}: runner.version={runner_version} requires artifacts.traces_dir"
+            )
+        else:
+            traces_dir = run_dir / traces_dir_rel
+            expected_trace_files: dict[str, set[str]] = {
+                "pre_commit_error_stream.v1.json": {
+                    "schema_version",
+                    "pre_commit_error",
+                    "candidate_trajectory_id",
+                    "samples",
+                },
+                "post_commit_error_stream.v1.json": {
+                    "schema_version",
+                    "post_commit_error",
+                    "committed_trajectory_id",
+                    "samples",
+                },
+                "commitment_trace.v1.json": {
+                    "schema_version",
+                    "commitment_trace_id",
+                    "boundary",
+                    "committed_trajectory_id",
+                },
+                "rollout_candidate_metadata.v1.json": {
+                    "schema_version",
+                    "candidate_trajectory_id",
+                    "candidate_source",
+                    "candidate_horizon",
+                },
+                "task_loop_object.v1.json": {
+                    "schema_version",
+                    "object_token",
+                    "valence_vec",
+                    "transition_ops",
+                    "error_vec",
+                    "stop_op",
+                    "time_env",
+                    "identity_tag",
+                },
+                "coupling_graph.v1.json": {
+                    "schema_version",
+                    "nodes",
+                    "edges",
+                    "stream_routes",
+                },
+            }
+            for filename, required_keys in expected_trace_files.items():
+                trace_path = traces_dir / filename
+                if not trace_path.exists():
+                    issues.append(
+                        f"{manifest_path}: missing required trace artifact for v2 runner ({trace_path})"
+                    )
+                    continue
+                trace_payload = load_json(trace_path)
+                missing_keys = sorted(required_keys - set(trace_payload.keys()))
+                if missing_keys:
+                    issues.append(f"{trace_path}: missing required key(s) {missing_keys}")
+
     if experiment_type == "commit_dual_error_channels":
-        traces_dir_rel = artifacts.get("traces_dir")
         if not traces_dir_rel:
             issues.append(f"{manifest_path}: commit_dual_error_channels runs must declare artifacts.traces_dir")
         else:
