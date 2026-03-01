@@ -1,0 +1,81 @@
+{
+  "schema_version": "v1",
+  "calibration": {
+    "ms_per_episode_condition": 750,
+    "hardware": "Apple M2 Air 8 GB",
+    "calibrated_at": "2026-03-01",
+    "calibration_note": "Estimated from V1 calibration: 200 eps x 3 seeds x 2 conditions ~ 15 min on M2 Air 8GB. CausalGridWorld slightly heavier than GridWorld due to contamination tracking; estimate held conservative."
+  },
+  "items": [
+    {
+      "queue_id": "EXQ-014",
+      "backlog_id": "EVB-0037",
+      "claim_id": "MECH-059",
+      "title": "Control Plane Precision Separation — V2 Parity",
+      "description": "Parity check #1. Replicates V1 EXQ-013 PASS result on REE-v2 substrate (CausalGridWorld). Tests whether separating slow-timescale E1 precision updates from fast-timescale E3 policy decisions reduces hazard collision rates compared to a merged control plane. Closes SD-001 parity gap for MECH-059.",
+      "script": "experiments/control_plane_precision_separation.py",
+      "args": ["--episodes", "200", "--seeds", "7", "42", "99"],
+      "seeds": 3,
+      "conditions": 2,
+      "episodes_per_run": 200,
+      "status": "pending",
+      "status_reason": "Script ported from V1 2026-03-01; CausalGridWorld substitution complete"
+    },
+    {
+      "queue_id": "EXQ-015",
+      "backlog_id": "EVB-0039",
+      "claim_id": "MECH-056",
+      "title": "Residue Trajectory Placement — V2 Parity",
+      "description": "Parity check #2. Replicates V1 PASS result for MECH-056 on REE-v2 substrate. Tests whether residue accumulates at trajectory positions during rollout (trajectory-wide placement) vs only the final step (endpoint-only). Validates REE invariant that harm sites are precisely localised along the planned path.",
+      "script": "experiments/residue_trajectory_placement.py",
+      "args": ["--episodes", "200", "--seeds", "7", "42", "99"],
+      "seeds": 3,
+      "conditions": 2,
+      "episodes_per_run": 200,
+      "status": "pending",
+      "status_reason": "Script ported from V1 2026-03-01; CausalGridWorld substitution complete"
+    },
+    {
+      "queue_id": "EXQ-016",
+      "backlog_id": "EVB-0043",
+      "claim_id": "MECH-060",
+      "title": "Write Locus Contamination — V2 Parity",
+      "description": "Parity check #3. Replicates V1 PASS result for MECH-060/MECH-067 on REE-v2 substrate. Tests whether contamination is properly attributed to write loci vs residual signal bleed. Three conditions: FULL, CONTAMINATED_DURABLE, CONTAMINATED_RESIDUE. CausalGridWorld's contamination footprint makes this directly testable.",
+      "script": "experiments/write_locus_contamination.py",
+      "args": ["--episodes", "200", "--seeds", "7", "42", "99"],
+      "seeds": 3,
+      "conditions": 3,
+      "episodes_per_run": 200,
+      "status": "pending",
+      "status_reason": "Script ported from V1 2026-03-01; CausalGridWorld substitution complete"
+    },
+    {
+      "queue_id": "EXQ-017",
+      "backlog_id": "EVB-0041",
+      "claim_id": "MECH-061",
+      "title": "Commitment Boundary Validation — V2 Parity",
+      "description": "Parity check #4. Replicates V1 PASS result for MECH-061 on REE-v2 substrate. Tests whether the commit boundary correctly separates pre-commit simulation errors (E2 harm predictions) from post-commit realised errors (actual env harm), and whether keeping them separate is at least as good as blending them into a single signal.",
+      "script": "experiments/commitment_boundary_validation.py",
+      "args": ["--episodes", "200", "--seeds", "7", "42", "99"],
+      "seeds": 3,
+      "conditions": 2,
+      "episodes_per_run": 200,
+      "status": "pending",
+      "status_reason": "Script ported from V1 2026-03-01; CausalGridWorld substitution complete"
+    },
+    {
+      "queue_id": "EXQ-018",
+      "backlog_id": "EVB-0045",
+      "claim_id": "SD-003-prereq",
+      "title": "CausalGridWorld Baseline — Step 2.3 Environment Validation",
+      "description": "Step 2.3 exit criterion validation. New V2 experiment (no V1 equivalent). Tests that CausalGridWorld produces structurally distinct agent_caused_hazard vs env_caused_hazard transitions, that the baseline REE agent creates a non-trivial contamination footprint, and that agent causal contribution exceeds the 10% threshold. PASS confirms SD-003 substrate is ready.",
+      "script": "experiments/causal_grid_world_baseline.py",
+      "args": ["--episodes", "50", "--seeds", "7", "42", "99"],
+      "seeds": 3,
+      "conditions": 1,
+      "episodes_per_run": 50,
+      "status": "pending",
+      "status_reason": "Script written 2026-03-01; validates Step 2.3 prerequisites before SD-003 experiments"
+    }
+  ]
+}

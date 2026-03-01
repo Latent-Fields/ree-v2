@@ -1,0 +1,53 @@
+{
+  "baseline_v2": {
+    "description": "Default REE-v2 baseline with CausalGridWorld. J = F + λM + ρΦ_R. Tests MECH-056.",
+    "claim_ids_tested": ["MECH-056"],
+    "evidence_class": "simulation",
+    "environment": {
+      "env_id": "ree.causal_grid_world",
+      "env_version": "causal_grid_world/v2",
+      "tier": "toy",
+      "runtime": {
+        "size": 10,
+        "num_hazards": 3,
+        "num_resources": 5,
+        "contamination_spread": 0.5,
+        "contamination_threshold": 2.0,
+        "env_drift_interval": 5,
+        "env_drift_prob": 0.3,
+        "resource_benefit": 0.3,
+        "hazard_harm": 0.5,
+        "contaminated_harm": 0.3,
+        "energy_decay": 0.02
+      }
+    }
+  },
+  "no_residue_v2": {
+    "description": "Ablation: disables residue contribution (ρ=0). Tests MECH-034/MECH-056.",
+    "claim_ids_tested": ["MECH-034", "MECH-056"],
+    "evidence_class": "ablation",
+    "overrides": {
+      "e3": {
+        "residue_weight": 0.0
+      }
+    },
+    "environment": {
+      "env_id": "ree.causal_grid_world",
+      "env_version": "causal_grid_world/v2",
+      "tier": "toy",
+      "runtime": {
+        "size": 10,
+        "num_hazards": 3,
+        "num_resources": 5,
+        "contamination_spread": 0.5,
+        "contamination_threshold": 2.0,
+        "env_drift_interval": 5,
+        "env_drift_prob": 0.3,
+        "resource_benefit": 0.3,
+        "hazard_harm": 0.5,
+        "contaminated_harm": 0.3,
+        "energy_decay": 0.02
+      }
+    }
+  }
+}
