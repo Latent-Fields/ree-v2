@@ -1,0 +1,95 @@
+{
+  "schema_version": "task_loop_object/v1",
+  "object_token": "obj-cb-1773051c2ee75c5d",
+  "valence_vec": {
+    "approach": 0.333333333333,
+    "avoid": 0.666666666667,
+    "urgency": 0.290059455384
+  },
+  "transition_ops": [
+    {
+      "op_id": "transition_0",
+      "delta": 1.0,
+      "source": "action_stream"
+    },
+    {
+      "op_id": "transition_1",
+      "delta": -1.0,
+      "source": "action_stream"
+    },
+    {
+      "op_id": "transition_2",
+      "delta": -1.0,
+      "source": "action_stream"
+    }
+  ],
+  "error_vec": {
+    "pre_commit_error": 0.237827696154,
+    "post_commit_error": 0.089501925809,
+    "latent_error_mean": 0.162885969918
+  },
+  "stop_op": {
+    "opcode": "continue",
+    "reason": "none"
+  },
+  "time_env": {
+    "onset_step": 0,
+    "issued_at_step": 119,
+    "expected_duration_steps": 120,
+    "deadline_step": 183
+  },
+  "identity_tag": {
+    "ownership": "self_generated",
+    "source_backend": "internal_minimal",
+    "source_model": "ree_v2_internal_minimal"
+  },
+  "path_graph": {
+    "nodes": [
+      "n0",
+      "n1",
+      "n2",
+      "n3",
+      "n4",
+      "n5",
+      "n6",
+      "n7"
+    ],
+    "edges": [
+      {
+        "from": "n0",
+        "to": "n1",
+        "weight": 1.0
+      },
+      {
+        "from": "n1",
+        "to": "n2",
+        "weight": 1.0
+      },
+      {
+        "from": "n2",
+        "to": "n3",
+        "weight": 1.0
+      },
+      {
+        "from": "n3",
+        "to": "n4",
+        "weight": 1.0
+      },
+      {
+        "from": "n4",
+        "to": "n5",
+        "weight": 1.0
+      },
+      {
+        "from": "n5",
+        "to": "n6",
+        "weight": 1.0
+      },
+      {
+        "from": "n6",
+        "to": "n7",
+        "weight": 1.0
+      }
+    ]
+  }
+}

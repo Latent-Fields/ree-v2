@@ -1,0 +1,8 @@
+{
+  "schema_version": "rollout_candidate_metadata/v1",
+  "hook_id": "HK-104",
+  "commit_id": "cb-1773051c2ee75c5d",
+  "candidate_trajectory_id": "commit_dual_error_channels:pre_post_split_streams:seed11:candidate:0a5026b73a",
+  "candidate_source": "ree_v2_internal_minimal",
+  "candidate_horizon": 3
+}

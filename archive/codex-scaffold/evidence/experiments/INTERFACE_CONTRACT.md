@@ -10,7 +10,14 @@ evidence/experiments/<experiment_type>/runs/<run_id>/
   metrics.json
   summary.md
   jepa_adapter_signals.v1.json   # optional; required when adapter_signals_path is declared
-  traces/               # optional
+  traces/               # required for runner.version `toy_env_runner.v2+*`
+    pre_commit_error_stream.v1.json
+    post_commit_error_stream.v1.json
+    commitment_trace.v1.json
+    rollout_candidate_metadata.v1.json
+    task_loop_object.v1.json
+    coupling_graph.v1.json
+    channel_isolation.v1.json      # required for commit_dual_error_channels
   media/                # optional
 ```
 
@@ -128,6 +135,22 @@ Required core fields:
   - `control_axes.tonic`
   - `control_axes.phasic`
   - `control_axes.readout_weights`
+
+Active bridge commit-stream hooks:
+
+- `HK-101` pre_commit_simulation_error_stream
+  - `pre_commit_error`
+  - `candidate_trajectory_id`
+- `HK-102` post_commit_realized_error_stream
+  - `post_commit_error`
+  - `committed_trajectory_id`
+- `HK-103` commitment_trace_id_export
+  - `commitment_trace_id`
+  - `committed_trajectory_id`
+- `HK-104` rollout_candidate_metadata_export
+  - `candidate_trajectory_id`
+  - `candidate_source`
+  - `candidate_horizon`
 
 Bridge payload schemas are validated by:
 

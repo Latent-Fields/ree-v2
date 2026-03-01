@@ -1,0 +1,35 @@
+{
+  "schema_version": "commitment_trace/v1",
+  "hook_id": "HK-103",
+  "commit_id": "cb-1773051c2ee75c5d",
+  "commitment_trace_id": "ct-f2103e7c660664dc",
+  "boundary": {
+    "commit_id": "cb-1773051c2ee75c5d",
+    "trajectory_id": "commit_dual_error_channels:pre_post_split_streams:seed11",
+    "trajectory_hash": "f83b247b29c035f4c29d7e5d",
+    "issued_at_step": 119,
+    "ttl_steps": 64,
+    "mode_snapshot": {
+      "experiment_type": "commit_dual_error_channels",
+      "condition_name": "pre_post_split_streams",
+      "include_uncertainty": false,
+      "include_action_token": true
+    },
+    "intended_action_labels": [
+      "actuate"
+    ],
+    "authority_path": [
+      "control_plane",
+      "e3_selector",
+      "action_gate"
+    ],
+    "policy_hash": "8f9a14e545c997f847e42178",
+    "caps_hash": "ac1c81854a0a05f69337982c",
+    "verifier_result_hash": "d95132944b39f6328c2ef0f8",
+    "uncertainty_snapshot": {
+      "enabled": false,
+      "dispersion": 0.0
+    }
+  },
+  "committed_trajectory_id": "commit_dual_error_channels:pre_post_split_streams:seed11"
+}

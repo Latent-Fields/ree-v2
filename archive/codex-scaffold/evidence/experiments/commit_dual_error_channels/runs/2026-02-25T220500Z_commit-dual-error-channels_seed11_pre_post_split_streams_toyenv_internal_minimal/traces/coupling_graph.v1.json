@@ -1,0 +1,73 @@
+{
+  "schema_version": "coupling_graph/v1",
+  "nodes": [
+    {
+      "node_id": "sensor_adapter",
+      "latent_space": "L_ingress"
+    },
+    {
+      "node_id": "e1_world_model",
+      "latent_space": "L_world"
+    },
+    {
+      "node_id": "e2_fast_predictor",
+      "latent_space": "L_fast"
+    },
+    {
+      "node_id": "hippocampal_systems",
+      "latent_space": "L_path"
+    },
+    {
+      "node_id": "e3_selector",
+      "latent_space": "L_task"
+    },
+    {
+      "node_id": "control_plane",
+      "latent_space": "L_control"
+    },
+    {
+      "node_id": "action_gate",
+      "latent_space": "L_motor"
+    }
+  ],
+  "edges": [
+    {
+      "from": "e1_world_model",
+      "to": "e2_fast_predictor",
+      "coupling_operator": "predictive_forward_projection",
+      "precision": 0.097953782078,
+      "gating_rule": "post_predict"
+    },
+    {
+      "from": "e2_fast_predictor",
+      "to": "hippocampal_systems",
+      "coupling_operator": "candidate_rollout_seed",
+      "precision": 0.601364145281,
+      "gating_rule": "pre_commit"
+    },
+    {
+      "from": "hippocampal_systems",
+      "to": "e3_selector",
+      "coupling_operator": "trajectory_candidate_bundle",
+      "precision": 0.097953782078,
+      "gating_rule": "tri_loop_arbitration"
+    },
+    {
+      "from": "control_plane",
+      "to": "action_gate",
+      "coupling_operator": "commit_boundary_projection",
+      "precision": 0.300682072641,
+      "gating_rule": "dual_stream_pre_post"
+    }
+  ],
+  "stream_routes": {
+    "pre_commit": [
+      "HK-101",
+      "HK-104"
+    ],
+    "post_commit": [
+      "HK-102",
+      "HK-103"
+    ]
+  }
+}
