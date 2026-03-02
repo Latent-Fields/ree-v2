@@ -59,7 +59,7 @@ STATUS_WRITE_INTERVAL = 5
 # Regex patterns for parsing experiment stdout
 RE_SEED_CONDITION = re.compile(r'Seed\s+(\d+)\s+Condition\s+(\w+)')
 RE_EP_PROGRESS = re.compile(r'ep\s+(\d+)/(\d+)')
-RE_RUN_DONE = re.compile(r'harm\s+[\d.]+\s+→\s+[\d.]+\s+reduction:')
+RE_RUN_DONE = re.compile(r'harm\s+[\d.]+\s*→\s*[\d.]+')
 RE_SAVED_TO = re.compile(r'Results saved to:\s+(.+)')
 
 
@@ -109,6 +109,7 @@ def build_initial_status(queue_data: dict) -> dict:
             "estimated_minutes": round(estimate_minutes(item, calibration), 1),
             "status": item.get("status", "pending"),
             "status_reason": item.get("status_reason", ""),
+            "ree_version": "v2",
         })
     return {
         "schema_version": "v1",
@@ -182,6 +183,7 @@ def run_experiment(item: dict, status: dict, status_path: Path, calibration: dic
             "seconds_elapsed": round(time.monotonic() - started_at),
             "seconds_remaining": round(seconds_remaining()),
             "recent_lines": recent_lines[-5:],
+            "ree_version": "v2",
         }
         # Update queue item status to running
         for qi in status["queue"]:
@@ -467,6 +469,7 @@ def main():
                     "estimated_minutes": round(estimate_minutes(i, calibration), 1),
                     "status": "pending",
                     "status_reason": i.get("status_reason", ""),
+                    "ree_version": "v2",
                 })
             status["queue"] = new_queue_display
             status["idle"] = False
