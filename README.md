@@ -32,12 +32,6 @@ scripts/cross_repo_roundtrip.sh --dry-run
 
 Apache License 2.0 (see `LICENSE`).
 
-Third-party JEPA licensing and attribution surfaces are tracked in:
-
-- `third_party/THIRD_PARTY_NOTICES.md`
-- `docs/third_party/JEPA_ATTRIBUTION_AND_CITATION.md`
-- `third_party/jepa_sources.lock.v1.json`
-
 ## Citation
 
 - Cite this repository using `CITATION.cff`.

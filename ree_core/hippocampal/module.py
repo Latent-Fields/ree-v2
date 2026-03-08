@@ -66,29 +66,37 @@ class HippocampalModule(nn.Module):
         self.residue_field = residue_field
 
         # Terrain-aware action prior:
-        # Maps (z_beta, scalar_residue_at_z) → initial action distribution mean
+        # Maps (z_beta, e1_prior, scalar_residue_at_z) → initial action distribution mean
         # The residue value at the current state biases the prior toward
         # action directions that have historically avoided harm.
-        # Input: latent_dim + 1 (residue scalar)
+        # The E1 prior conditions the proposal on long-horizon associative context
+        # (SD-002: E1 primes E2 via associative prior; wired here into terrain search).
+        # Input: 2*latent_dim + 1 (z_beta + e1_prior + residue scalar)
         # Output: action_dim * horizon (flattened action mean)
         self.terrain_prior = nn.Sequential(
-            nn.Linear(config.latent_dim + 1, config.hidden_dim),
+            nn.Linear(config.latent_dim * 2 + 1, config.hidden_dim),
             nn.ReLU(),
             nn.Linear(config.hidden_dim, config.action_dim * config.horizon)
         )
 
     def _get_terrain_action_mean(
         self,
-        z_beta: torch.Tensor
+        z_beta: torch.Tensor,
+        e1_prior: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
         Compute terrain-informed action distribution mean.
 
         Queries the residue field at the current state and uses it
         to bias the initial action proposal toward low-harm directions.
+        The E1 prior (if provided) conditions the proposal on long-horizon
+        associative context — implementing SD-002's E1→HippocampalModule
+        wiring.
 
         Args:
             z_beta: Affordance latent [batch, latent_dim]
+            e1_prior: E1-generated prior for E2 conditioning [batch, latent_dim].
+                If None, zeros are used (unconditioned fallback).
 
         Returns:
             Action mean [batch, horizon, action_dim]
@@ -96,8 +104,13 @@ class HippocampalModule(nn.Module):
         with torch.no_grad():
             residue_val = self.residue_field.evaluate(z_beta).unsqueeze(-1)  # [batch, 1]
 
-        combined = torch.cat([z_beta, residue_val], dim=-1)  # [batch, latent_dim + 1]
-        mean_flat = self.terrain_prior(combined)               # [batch, action_dim * horizon]
+        # Use E1 prior when available; fall back to zeros (unconditioned)
+        if e1_prior is None:
+            e1_prior = torch.zeros_like(z_beta)
+
+        # [batch, 2*latent_dim + 1]
+        combined = torch.cat([z_beta, e1_prior, residue_val], dim=-1)
+        mean_flat = self.terrain_prior(combined)  # [batch, action_dim * horizon]
         return mean_flat.view(z_beta.shape[0], self.config.horizon, self.config.action_dim)
 
     def _score_trajectory(self, trajectory: Trajectory) -> torch.Tensor:
@@ -122,16 +135,19 @@ class HippocampalModule(nn.Module):
     def propose_trajectories(
         self,
         z_beta: torch.Tensor,
-        num_candidates: Optional[int] = None
+        num_candidates: Optional[int] = None,
+        e1_prior: Optional[torch.Tensor] = None
     ) -> List[Trajectory]:
         """
         Propose candidate trajectories via terrain-guided CEM.
 
         Unlike E2's random shooting, this iteratively refines action
-        proposals using the residue field as navigation terrain.
+        proposals using the residue field as navigation terrain and
+        E1's associative prior as long-horizon context.
 
         Algorithm:
         1. Initialise action distribution mean from terrain prior
+           (conditioned on z_beta, E1 prior, and residue geometry)
         2. For each CEM iteration:
            a. Sample num_candidates action sequences from current distribution
            b. Roll each out through E2 (pure transition model)
@@ -143,9 +159,15 @@ class HippocampalModule(nn.Module):
         the search strategy. The terrain prior and CEM loop are entirely
         this module's responsibility.
 
+        SD-002: The E1 prior is passed in from the agent and conditions
+        the terrain prior, implementing the E1→HippocampalModule wiring
+        described in docs/architecture/e2.md §4.
+
         Args:
             z_beta: Affordance latent [batch, latent_dim]
             num_candidates: Number of candidates per CEM iteration
+            e1_prior: E1-generated prior for conditioning [batch, latent_dim].
+                If None, unconditioned fallback (zeros) is used.
 
         Returns:
             List of Trajectory objects (final CEM iteration)
@@ -155,8 +177,9 @@ class HippocampalModule(nn.Module):
         batch_size = z_beta.shape[0]
         device = z_beta.device
 
-        # Initialise from terrain prior (bias toward low-residue regions)
-        action_mean = self._get_terrain_action_mean(z_beta)   # [batch, horizon, action_dim]
+        # Initialise from terrain prior (bias toward low-residue regions,
+        # conditioned on E1 long-horizon associative context — SD-002)
+        action_mean = self._get_terrain_action_mean(z_beta, e1_prior=e1_prior)  # [batch, horizon, action_dim]
         action_std = torch.ones_like(action_mean)
 
         all_trajectories: List[Trajectory] = []
@@ -192,7 +215,8 @@ class HippocampalModule(nn.Module):
     def forward(
         self,
         z_beta: torch.Tensor,
-        num_candidates: Optional[int] = None
+        num_candidates: Optional[int] = None,
+        e1_prior: Optional[torch.Tensor] = None
     ) -> List[Trajectory]:
         """Forward pass: propose trajectories from affordance latent."""
-        return self.propose_trajectories(z_beta, num_candidates)
+        return self.propose_trajectories(z_beta, num_candidates, e1_prior=e1_prior)

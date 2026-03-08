@@ -116,7 +116,6 @@ def validate_run(
     run_dir: Path,
     manifest_validator: Draft202012Validator,
     metrics_validator: Draft202012Validator,
-    adapter_validator: Draft202012Validator,
     stop_criteria: dict[str, Any],
 ) -> list[str]:
     issues: list[str] = []
@@ -148,10 +147,6 @@ def validate_run(
             issues.append(f"{manifest_path}: missing required linkage field '{key}'")
 
     scenario = manifest.get("scenario", {})
-    provenance_fields = ("jepa_source_mode", "jepa_source_commit", "jepa_patch_set_hash")
-    for key in provenance_fields:
-        if key not in scenario:
-            issues.append(f"{manifest_path}: scenario missing JEPA provenance field '{key}'")
 
     status = str(manifest.get("status", ""))
     failure_signatures = manifest.get("failure_signatures", [])
@@ -197,32 +192,6 @@ def validate_run(
     runner = manifest.get("runner", {})
     runner_version = str(runner.get("version", ""))
     requires_bridge_trace_bundle = runner_version.startswith("toy_env_runner.v2")
-
-    adapter_rel_path = artifacts.get("adapter_signals_path")
-    if adapter_rel_path:
-        adapter_path = run_dir / adapter_rel_path
-        if not adapter_path.exists():
-            issues.append(
-                f"{manifest_path}: adapter_signals_path points to missing file ({adapter_rel_path}) "
-                "signature=contract:jepa_adapter_signals_missing"
-            )
-        else:
-            adapter_payload = load_json(adapter_path)
-            adapter_errors = format_schema_errors(adapter_validator, adapter_payload, str(adapter_path))
-            if adapter_errors:
-                for error in adapter_errors:
-                    issues.append(f"{error} signature=contract:jepa_adapter_signals_invalid")
-            if adapter_payload.get("schema_version") != "jepa_adapter_signals/v1":
-                issues.append(
-                    f"{adapter_path}: schema_version must be jepa_adapter_signals/v1 "
-                    "signature=contract:jepa_adapter_signals_version"
-                )
-            if adapter_payload.get("experiment_type") != experiment_type:
-                issues.append(
-                    f"{adapter_path}: experiment_type mismatch dir={experiment_type} payload={adapter_payload.get('experiment_type')}"
-                )
-            if adapter_payload.get("run_id") != run_id:
-                issues.append(f"{adapter_path}: run_id mismatch dir={run_id} payload={adapter_payload.get('run_id')}")
 
     if requires_bridge_trace_bundle:
         if not traces_dir_rel:
@@ -321,12 +290,10 @@ def main() -> int:
 
     manifest_schema = load_json(REPO_ROOT / "contracts" / "schemas" / "v1" / "manifest.schema.json")
     metrics_schema = load_json(REPO_ROOT / "contracts" / "schemas" / "v1" / "metrics.schema.json")
-    adapter_schema = load_json(REPO_ROOT / "contracts" / "schemas" / "v1" / "jepa_adapter_signals.v1.json")
     stop_criteria = load_json(REPO_ROOT / "evidence" / "experiments" / "stop_criteria.v1.yaml")
 
     manifest_validator = Draft202012Validator(manifest_schema, format_checker=FormatChecker())
     metrics_validator = Draft202012Validator(metrics_schema, format_checker=FormatChecker())
-    adapter_validator = Draft202012Validator(adapter_schema, format_checker=FormatChecker())
 
     issues: list[str] = []
     run_count = 0
@@ -339,7 +306,6 @@ def main() -> int:
                 run_dir,
                 manifest_validator,
                 metrics_validator,
-                adapter_validator,
                 stop_criteria,
             )
         )
@@ -352,7 +318,7 @@ def main() -> int:
             print(f" - {issue}")
         return 1
 
-    print(f"PASS: validated {run_count} run(s), schemas, adapter files, and contract lock hashes")
+    print(f"PASS: validated {run_count} run(s), schemas, and contract lock hashes")
     return 0
 
 

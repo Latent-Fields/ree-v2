@@ -19,7 +19,6 @@ REQUIRED_KEYS = {
     "config_hash",
     "source_commit",
     "contract_lock_sha256",
-    "jepa_source_lock_sha256",
 }
 
 

@@ -29,7 +29,7 @@ If none of the above triggers are true, place run on `local`.
 
 ## Remote-required tasks
 - qualification sweeps with >= 3 seeds per condition
-- high-memory JEPA uncertainty or multi-condition comparison batches
+- high-memory multi-condition comparison batches
 - anything projected to violate local trigger thresholds
 
 ## Command entry points

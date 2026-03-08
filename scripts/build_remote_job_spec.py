@@ -59,7 +59,6 @@ def build_job_spec(
     offload_reasons: list[str],
     source_commit: str,
     contract_lock_hash: str,
-    jepa_lock_hash: str,
 ) -> dict[str, Any]:
     job_id = f"{experiment_type}__{condition_name}"
     created = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -75,7 +74,6 @@ def build_job_spec(
         "offload_reasons": offload_reasons,
         "source_commit": source_commit,
         "contract_lock_sha256": contract_lock_hash,
-        "jepa_source_lock_sha256": jepa_lock_hash,
         "results_destination": f"evidence/experiments/{experiment_type}/runs",
     }
 
@@ -87,7 +85,6 @@ def main() -> int:
     profiles = get_profiles(args.profile)
     source_commit = git_head()
     contract_lock_hash = sha256_file(REPO_ROOT / "contracts" / "ree_assembly_contract_lock.v1.json")
-    jepa_lock_hash = sha256_file(REPO_ROOT / "third_party" / "jepa_sources.lock.v1.json")
 
     count = 0
     for profile in profiles:
@@ -107,7 +104,6 @@ def main() -> int:
                 offload_reasons=reasons,
                 source_commit=source_commit,
                 contract_lock_hash=contract_lock_hash,
-                jepa_lock_hash=jepa_lock_hash,
             )
 
             out_path = args.out_dir / f"{payload['job_id']}.json"

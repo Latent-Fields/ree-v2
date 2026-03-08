@@ -11,8 +11,11 @@ The main REE agent integrating all V2 architectural components:
 
 V2 changes vs V1:
 - HippocampalModule added; generate_trajectories() uses it instead of E2 directly
+  (SD-001 resolution)
 - E2 is now a pure transition model; HippocampalModule handles CEM refinement
 - forward_counterfactual() exposed via e2 for SD-003 self-attribution
+- E1 prior now wired into HippocampalModule's terrain search, implementing
+  E1→HippocampalModule mutual constitution (SD-002 resolution, 2026-03-06)
 
 The agent implements the canonical REE loop:
 1. SENSE    - Receive observations and harm signals
@@ -171,7 +174,9 @@ class REEAgent(nn.Module):
 
         V2: delegates to HippocampalModule for terrain-guided CEM.
         E2 is used internally by HippocampalModule; it is no longer called
-        directly here (SD-001 resolution).
+        directly here (SD-001 resolution). The E1 prior is now wired into
+        HippocampalModule to condition the terrain search on long-horizon
+        associative context (SD-002 resolution, 2026-03-06).
 
         Args:
             latent_state: Current latent state
@@ -183,13 +188,17 @@ class REEAgent(nn.Module):
         # Get affordance latent (z_beta) for trajectory generation
         z_beta = self.latent_stack.get_affordance_latent(latent_state)
 
-        # E1 prior (available for future conditioning; currently computed
-        # but not yet wired into HippocampalModule — V2 Step 2.2 work)
-        _, _prior = self.e1(z_beta)
+        # E1 prior for HippocampalModule conditioning (SD-002).
+        # E1's associative prior captures long-horizon context and is now
+        # wired into HippocampalModule's terrain_prior to condition the
+        # initial action distribution — implementing E1→HippocampalModule
+        # mutual constitution (docs/architecture/e2.md §4, SD-002).
+        _, e1_prior = self.e1(z_beta)
 
-        # V2: HippocampalModule proposes trajectories via terrain navigation
+        # V2: HippocampalModule proposes trajectories via terrain navigation,
+        # conditioned on the E1 prior (SD-002 wiring, implemented 2026-03-06).
         candidates = self.hippocampal.propose_trajectories(
-            z_beta, num_candidates=num_candidates
+            z_beta, num_candidates=num_candidates, e1_prior=e1_prior
         )
 
         return candidates

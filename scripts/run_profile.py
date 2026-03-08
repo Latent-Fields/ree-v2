@@ -24,24 +24,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--backend",
         default="internal_minimal",
-        choices=["internal_minimal", "jepa_inference"],
+        choices=["internal_minimal"],
         help="Latent substrate backend mode",
-    )
-    parser.add_argument(
-        "--jepa-checkpoint-path",
-        type=Path,
-        default=None,
-        help="Optional local JEPA checkpoint path for jepa_inference backend",
-    )
-    parser.add_argument(
-        "--force-synthetic-frames",
-        action="store_true",
-        help="Force deterministic synthetic-frame fallback for jepa_inference smoke mode",
-    )
-    parser.add_argument(
-        "--require-real-jepa",
-        action="store_true",
-        help="Fail if jepa_inference cannot load a real checkpoint and falls back to synthetic mode",
     )
     parser.add_argument("--runs-root", type=Path, default=REPO_ROOT / "evidence" / "experiments")
     parser.add_argument("--run-id", default=None)
@@ -58,13 +42,6 @@ def main() -> int:
         known = ", ".join(item.name for item in profile.conditions)
         print(f"FAIL: unknown condition '{condition_name}' for profile '{profile.experiment_type}'. Known: {known}")
         return 1
-    if args.require_real_jepa and args.backend != "jepa_inference":
-        print("FAIL: --require-real-jepa requires --backend jepa_inference")
-        return 1
-    if args.require_real_jepa and args.force_synthetic_frames:
-        print("FAIL: --require-real-jepa is incompatible with --force-synthetic-frames")
-        return 1
-
     try:
         result = execute_profile_condition(
             experiment_type=profile.experiment_type,
@@ -75,9 +52,6 @@ def main() -> int:
             runs_root=args.runs_root,
             run_id=args.run_id,
             timestamp_utc=args.timestamp_utc,
-            jepa_checkpoint_path=args.jepa_checkpoint_path,
-            force_synthetic_frames=args.force_synthetic_frames,
-            require_real_jepa=args.require_real_jepa,
             write=True,
         )
     except RuntimeError as exc:

@@ -36,7 +36,7 @@ Options:
   --profile <name>             Qualification profile (default: all)
   --condition-mode <mode>      supports_only|all_conditions (default: all_conditions)
   --seeds <csv>                Comma-separated seeds (default: 11,29,47)
-  --backend <name>             internal_minimal|jepa_inference (default: internal_minimal)
+  --backend <name>             internal_minimal (default: internal_minimal)
   --max-abs-delta <float>      Determinism threshold (default: 1e-6)
   --weekly-handoff-out <path>  ree-v2 weekly handoff output path relative to ree-v2 root
                                (default: evidence/planning/weekly_handoff/latest.md)

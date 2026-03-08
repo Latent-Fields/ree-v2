@@ -8,7 +8,6 @@ Provide provider-agnostic remote execution for qualification runs routed off loc
 - execute job payload pinned by:
   - source commit
   - `contracts/ree_assembly_contract_lock.v1.json` hash
-  - `third_party/jepa_sources.lock.v1.json` hash
 - return run packs without mutation to `jobs/completed/<experiment_type>__<run_id>/`
 
 ## Recommended bootstrap backend contract

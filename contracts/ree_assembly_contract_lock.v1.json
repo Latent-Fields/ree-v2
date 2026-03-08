@@ -19,12 +19,6 @@
       "sha256": "d6eee5a1496f681c2ffc9244116ec0598ad961f891ac0a31dbc197f8be489db2"
     },
     {
-      "id": "jepa_adapter_signals_schema",
-      "local_path": "contracts/schemas/v1/jepa_adapter_signals.v1.json",
-      "source_path": "/Users/dgolden/Documents/GitHub/REE_assembly/evidence/experiments/schemas/v1/jepa_adapter_signals.v1.json",
-      "sha256": "88085b5c29698c6140f07f343827e84ea7a8b2d5e9135ceec8a4b4d532369b60"
-    },
-    {
       "id": "hook_registry",
       "local_path": "contracts/hook_registry.v1.json",
       "source_path": "/Users/dgolden/Documents/GitHub/REE_assembly/docs/architecture/hook_registry.v1.json",
