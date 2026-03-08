@@ -1,0 +1,145 @@
+{
+  "experiment": "write_locus_contamination",
+  "claim": "MECH-060",
+  "claim_ids_tested": [
+    "MECH-060",
+    "MECH-067"
+  ],
+  "evb_id": "EVB-0043",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-01T22:36:58.485962+00:00",
+  "config": {
+    "num_episodes": 200,
+    "max_steps": 100,
+    "seeds": [
+      7,
+      42,
+      99
+    ],
+    "grid_size": 10,
+    "num_hazards": 4,
+    "environment": "CausalGridWorld",
+    "contam_e1_weight": 3.0,
+    "residue_criterion_factor": 1.1,
+    "harm_tolerance_factor": 1.05,
+    "e1_lr": 0.0001,
+    "policy_lr": 0.001
+  },
+  "verdict": "PASS",
+  "partial_support": false,
+  "aggregate": {
+    "full_last_quarter_harm": 1.222,
+    "contaminated_durable_last_quarter_harm": 1.2,
+    "contaminated_residue_last_quarter_harm": 0.6487,
+    "full_total_residue": 245.8333,
+    "contaminated_residue_total_residue": 5359.5385,
+    "full_abs_attr_corr": 0.0463,
+    "contaminated_durable_abs_attr_corr": 0.0377,
+    "contaminated_residue_abs_attr_corr": 0.3615,
+    "residue_criterion_factor": 1.1,
+    "harm_tolerance_factor": 1.05,
+    "residue_criterion_met": true,
+    "harm_criterion_met": true
+  },
+  "per_run": [
+    {
+      "condition": "FULL",
+      "seed": 7,
+      "first_quarter_harm": 1.246,
+      "last_quarter_harm": 1.25,
+      "total_residue_added": 249.7,
+      "mean_residue_per_episode": 1.2485,
+      "attr_corr": -0.0082,
+      "abs_attr_corr": 0.0082,
+      "episode_count": 200
+    },
+    {
+      "condition": "CONTAMINATED_DURABLE",
+      "seed": 7,
+      "first_quarter_harm": 1.246,
+      "last_quarter_harm": 1.226,
+      "total_residue_added": 246.4,
+      "mean_residue_per_episode": 1.232,
+      "attr_corr": 0.0542,
+      "abs_attr_corr": 0.0542,
+      "episode_count": 200
+    },
+    {
+      "condition": "CONTAMINATED_RESIDUE",
+      "seed": 7,
+      "first_quarter_harm": 1.222,
+      "last_quarter_harm": 0.614,
+      "total_residue_added": 4705.3954,
+      "mean_residue_per_episode": 23.526977,
+      "attr_corr": 0.3196,
+      "abs_attr_corr": 0.3196,
+      "episode_count": 200
+    },
+    {
+      "condition": "FULL",
+      "seed": 42,
+      "first_quarter_harm": 1.23,
+      "last_quarter_harm": 1.188,
+      "total_residue_added": 242.2,
+      "mean_residue_per_episode": 1.211,
+      "attr_corr": 0.1044,
+      "abs_attr_corr": 0.1044,
+      "episode_count": 200
+    },
+    {
+      "condition": "CONTAMINATED_DURABLE",
+      "seed": 42,
+      "first_quarter_harm": 1.21,
+      "last_quarter_harm": 1.174,
+      "total_residue_added": 240.9,
+      "mean_residue_per_episode": 1.2045,
+      "attr_corr": 0.0327,
+      "abs_attr_corr": 0.0327,
+      "episode_count": 200
+    },
+    {
+      "condition": "CONTAMINATED_RESIDUE",
+      "seed": 42,
+      "first_quarter_harm": 0.81,
+      "last_quarter_harm": 0.12,
+      "total_residue_added": 7676.7161,
+      "mean_residue_per_episode": 38.38358,
+      "attr_corr": 0.7494,
+      "abs_attr_corr": 0.7494,
+      "episode_count": 200
+    },
+    {
+      "condition": "FULL",
+      "seed": 99,
+      "first_quarter_harm": 1.226,
+      "last_quarter_harm": 1.228,
+      "total_residue_added": 245.6,
+      "mean_residue_per_episode": 1.228,
+      "attr_corr": 0.0262,
+      "abs_attr_corr": 0.0262,
+      "episode_count": 200
+    },
+    {
+      "condition": "CONTAMINATED_DURABLE",
+      "seed": 99,
+      "first_quarter_harm": 1.224,
+      "last_quarter_harm": 1.2,
+      "total_residue_added": 243.8,
+      "mean_residue_per_episode": 1.219,
+      "attr_corr": 0.0261,
+      "abs_attr_corr": 0.0261,
+      "episode_count": 200
+    },
+    {
+      "condition": "CONTAMINATED_RESIDUE",
+      "seed": 99,
+      "first_quarter_harm": 1.222,
+      "last_quarter_harm": 1.212,
+      "total_residue_added": 3696.5039,
+      "mean_residue_per_episode": 18.48252,
+      "attr_corr": -0.0154,
+      "abs_attr_corr": 0.0154,
+      "episode_count": 200
+    }
+  ]
+}

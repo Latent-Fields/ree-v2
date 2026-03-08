@@ -1,0 +1,44 @@
+{
+  "experiment": "causal_grid_world_baseline",
+  "claim": "SD-003-prereq",
+  "evb_id": "EVB-0045",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-01T17:27:07.370557+00:00",
+  "config": {
+    "num_episodes": 5,
+    "max_steps": 100,
+    "seeds": [
+      42
+    ],
+    "grid_size": 10,
+    "num_hazards": 3,
+    "num_resources": 5,
+    "environment": "CausalGridWorld",
+    "agent_fraction_threshold": 0.1,
+    "e1_lr": 0.0001,
+    "policy_lr": 0.001
+  },
+  "verdict": "PASS",
+  "criteria_met": 4,
+  "aggregate": {
+    "contamination_events_total": 161,
+    "agent_caused_harm_count_total": 14,
+    "env_caused_harm_count_total": 1,
+    "agent_fraction": 0.9333,
+    "criterion_1_contamination_gt_0": true,
+    "criterion_2_agent_caused_gt_0": true,
+    "criterion_3_env_caused_gt_0": true,
+    "criterion_4_agent_fraction_gt_threshold": true
+  },
+  "per_run": [
+    {
+      "seed": 42,
+      "episode_count": 5,
+      "agent_caused_harm_count_total": 14,
+      "env_caused_harm_count_total": 1,
+      "contamination_events_total": 161,
+      "agent_fraction": 0.9333,
+      "mean_harm_per_episode": 1.22
+    }
+  ]
+}

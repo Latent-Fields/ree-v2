@@ -1,0 +1,95 @@
+{
+  "experiment": "commitment_boundary_validation",
+  "claim": "MECH-061",
+  "evb_id": "EVB-0041",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-02T00:13:12.319106+00:00",
+  "config": {
+    "num_episodes": 200,
+    "max_steps": 100,
+    "seeds": [
+      7,
+      42,
+      99
+    ],
+    "grid_size": 10,
+    "num_hazards": 4,
+    "environment": "CausalGridWorld",
+    "blend_alpha": 0.5,
+    "e1_lr": 0.0001,
+    "policy_lr": 0.001
+  },
+  "verdict": "PASS",
+  "partial_support": false,
+  "aggregate": {
+    "with_boundary_harm_last_quarter": 1.25,
+    "blended_harm_last_quarter": 1.214,
+    "mean_abs_pre_post_corr_with_boundary": 0.2208,
+    "corr_threshold": 0.7,
+    "harm_tolerance_factor": 1.05,
+    "distinct_signals_criterion_met": true,
+    "boundary_helps_criterion_met": true
+  },
+  "per_run": [
+    {
+      "condition": "WITH-BOUNDARY",
+      "seed": 7,
+      "first_quarter_harm": 1.228,
+      "last_quarter_harm": 1.26,
+      "mean_prediction_error": 0.451805,
+      "pre_post_corr": 0.0043,
+      "abs_pre_post_corr": 0.0043,
+      "episode_count": 200
+    },
+    {
+      "condition": "BLENDED",
+      "seed": 7,
+      "first_quarter_harm": 1.252,
+      "last_quarter_harm": 1.21,
+      "mean_prediction_error": 0.448335,
+      "pre_post_corr": -0.103,
+      "abs_pre_post_corr": 0.103,
+      "episode_count": 200
+    },
+    {
+      "condition": "WITH-BOUNDARY",
+      "seed": 42,
+      "first_quarter_harm": 1.232,
+      "last_quarter_harm": 1.244,
+      "mean_prediction_error": 0.447357,
+      "pre_post_corr": -0.3297,
+      "abs_pre_post_corr": 0.3297,
+      "episode_count": 200
+    },
+    {
+      "condition": "BLENDED",
+      "seed": 42,
+      "first_quarter_harm": 1.236,
+      "last_quarter_harm": 1.204,
+      "mean_prediction_error": 0.441193,
+      "pre_post_corr": -0.1426,
+      "abs_pre_post_corr": 0.1426,
+      "episode_count": 200
+    },
+    {
+      "condition": "WITH-BOUNDARY",
+      "seed": 99,
+      "first_quarter_harm": 1.24,
+      "last_quarter_harm": 1.246,
+      "mean_prediction_error": 0.474604,
+      "pre_post_corr": 0.3285,
+      "abs_pre_post_corr": 0.3285,
+      "episode_count": 200
+    },
+    {
+      "condition": "BLENDED",
+      "seed": 99,
+      "first_quarter_harm": 1.25,
+      "last_quarter_harm": 1.228,
+      "mean_prediction_error": 0.477302,
+      "pre_post_corr": 0.4114,
+      "abs_pre_post_corr": 0.4114,
+      "episode_count": 200
+    }
+  ]
+}
