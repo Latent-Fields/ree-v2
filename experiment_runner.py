@@ -74,12 +74,20 @@ def now_utc() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+_write_status_lock = threading.Lock()
+
+
 def write_status(status: dict, path: Path) -> None:
-    """Atomic write: write to .tmp then rename to avoid partial reads."""
-    tmp = path.with_suffix(".tmp")
-    status["last_updated"] = now_utc()
-    tmp.write_text(json.dumps(status, indent=2))
-    tmp.rename(path)
+    """Atomic write: write to .tmp then rename to avoid partial reads.
+
+    Lock ensures the heartbeat thread and main thread don't race on the
+    same .tmp file (which would cause ENOENT on rename).
+    """
+    with _write_status_lock:
+        tmp = path.with_suffix(".tmp")
+        status["last_updated"] = now_utc()
+        tmp.write_text(json.dumps(status, indent=2))
+        tmp.rename(path)
 
 
 def load_queue() -> dict:
