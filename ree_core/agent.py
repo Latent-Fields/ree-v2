@@ -118,6 +118,10 @@ class REEAgent(nn.Module):
         self._e2_transition_buffer: List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = []
         self._harm_this_episode = 0.0
 
+        # MECH-057a: Action-loop gate — cached candidates reused when gate is
+        # active (sequence_in_progress=True) to prevent mid-sequence replanning.
+        self._committed_candidates: Optional[List] = None
+
         self.device = torch.device(config.device)
 
     @classmethod
@@ -146,6 +150,7 @@ class REEAgent(nn.Module):
         self.e1.reset_hidden_state()
         self._step_count = 0
         self._harm_this_episode = 0.0
+        self._committed_candidates = None  # Clear gate cache on episode reset
 
     def sense(self, observation: torch.Tensor) -> torch.Tensor:
         """Process raw observation (SENSE step of REE loop)."""
@@ -168,7 +173,8 @@ class REEAgent(nn.Module):
     def generate_trajectories(
         self,
         latent_state: LatentState,
-        num_candidates: Optional[int] = None
+        num_candidates: Optional[int] = None,
+        sequence_in_progress: bool = False,
     ) -> List:
         """
         Propose candidate trajectories (GENERATE step of REE loop).
@@ -179,13 +185,34 @@ class REEAgent(nn.Module):
         HippocampalModule to condition the terrain search on long-horizon
         associative context (SD-002 resolution, 2026-03-06).
 
+        MECH-057a gate (action_loop_gate_enabled):
+        When the gate is enabled AND a committed action sequence is currently
+        in progress (sequence_in_progress=True), this method returns the
+        cached candidates from the previous call rather than invoking
+        HippocampalModule for new proposals. This prevents competing
+        trajectory candidates from interrupting mid-sequence execution.
+        When the sequence completes or is not in progress, normal generation
+        resumes and the new candidates are cached for potential future gating.
+
         Args:
             latent_state: Current latent state
             num_candidates: Number of trajectories to generate
+            sequence_in_progress: Whether a committed action sequence is
+                currently executing (from env info['sequence_in_progress']).
+                Only meaningful when config.action_loop_gate_enabled=True.
 
         Returns:
             List of candidate Trajectory objects
         """
+        # MECH-057a: Action-loop gate — suppress new HippocampalModule proposals
+        # while a committed sequence is executing. Return cached candidates instead.
+        if (
+            self.config.action_loop_gate_enabled
+            and sequence_in_progress
+            and self._committed_candidates is not None
+        ):
+            return self._committed_candidates
+
         # Get affordance latent (z_beta) for trajectory generation
         z_beta = self.latent_stack.get_affordance_latent(latent_state)
 
@@ -202,6 +229,10 @@ class REEAgent(nn.Module):
             z_beta, num_candidates=num_candidates, e1_prior=e1_prior
         )
 
+        # Cache for gate: if a new sequence starts next step, these candidates
+        # will be held until sequence completion or timeout.
+        self._committed_candidates = candidates
+
         return candidates
 
     def select_action(
@@ -216,7 +247,8 @@ class REEAgent(nn.Module):
     def act(
         self,
         observation: torch.Tensor,
-        temperature: float = 1.0
+        temperature: float = 1.0,
+        sequence_in_progress: bool = False,
     ) -> torch.Tensor:
         """
         Complete REE action selection loop.
@@ -226,26 +258,47 @@ class REEAgent(nn.Module):
         Args:
             observation: Raw observation from environment
             temperature: Selection temperature for exploration
+            sequence_in_progress: Whether a committed sequence is executing.
+                Passed to generate_trajectories() for MECH-057a gate logic.
 
         Returns:
             Action to execute
         """
         encoded_obs = self.sense(observation)
         latent_state = self.update_latent(encoded_obs)
-        candidates = self.generate_trajectories(latent_state)
+        candidates = self.generate_trajectories(
+            latent_state, sequence_in_progress=sequence_in_progress
+        )
         action = self.select_action(candidates, temperature)
         self._step_count += 1
         return action
 
-    def update_residue(self, harm_signal: float) -> Dict[str, Any]:
+    def update_residue(
+        self,
+        harm_signal: float,
+        owned: bool = True,
+    ) -> Dict[str, Any]:
         """
         Update residue field after action (RESIDUE step of REE loop).
 
         If harm occurred, accumulate residue at current latent state.
         This implements the REE invariant that residue cannot be erased.
 
+        MECH-057a attribution parameter:
+        When owned=True (default), residue accumulates for this harm event —
+        the agent owns the harm (e.g., harm during a committed sequence).
+        When owned=False, residue does NOT accumulate — the harm is not
+        attributed to the agent's action ownership. Used in the NO_ATTRIBUTION
+        condition of EXQ-020 to ablate action-ownership-conditioned residue.
+
+        Note: harm is ALWAYS tracked in _harm_this_episode regardless of
+        ownership — the episode-level harm metric is not gated.
+
         Args:
             harm_signal: Harm signal from environment (negative = harm)
+            owned: Whether to accumulate residue for this harm event.
+                True = agent owns harm (residue accumulates, default behaviour).
+                False = harm not attributed to agent (no residue accumulation).
 
         Returns:
             Dictionary of update metrics
@@ -256,7 +309,7 @@ class REEAgent(nn.Module):
             harm_magnitude = abs(harm_signal)
             self._harm_this_episode += harm_magnitude
 
-            if self._current_latent is not None:
+            if owned and self._current_latent is not None:
                 z_gamma = self._current_latent.z_gamma
                 residue_metrics = self.residue_field.accumulate(z_gamma, harm_magnitude)
                 metrics.update({f"residue_{k}": v for k, v in residue_metrics.items()})
@@ -381,7 +434,8 @@ class REEAgent(nn.Module):
     def act_with_log_prob(
         self,
         observation: torch.Tensor,
-        temperature: float = 1.0
+        temperature: float = 1.0,
+        sequence_in_progress: bool = False,
     ):
         """
         Action selection with policy-gradient bookkeeping.
@@ -389,13 +443,21 @@ class REEAgent(nn.Module):
         Identical to act() but also returns the log-probability of the
         selected trajectory for REINFORCE loss computation.
 
+        Args:
+            observation: Raw observation from environment
+            temperature: Selection temperature for exploration
+            sequence_in_progress: Whether a committed sequence is executing.
+                Passed to generate_trajectories() for MECH-057a gate logic.
+
         Returns:
             (action, log_prob) — log_prob is a scalar tensor connected to
             the computation graph through E3's scorer weights.
         """
         encoded_obs = self.sense(observation)
         latent_state = self.update_latent(encoded_obs)
-        candidates = self.generate_trajectories(latent_state)
+        candidates = self.generate_trajectories(
+            latent_state, sequence_in_progress=sequence_in_progress
+        )
         result = self.e3.select(candidates, temperature)
         self._step_count += 1
         return result.selected_action, result.log_prob

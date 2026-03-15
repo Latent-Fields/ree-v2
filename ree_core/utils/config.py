@@ -204,6 +204,12 @@ class REEConfig:
     # Agent loop settings
     offline_integration_frequency: int = 100  # Steps between "sleep" cycles
 
+    # MECH-057a: Action-loop completion gate
+    # When True and sequence_in_progress=True, generate_trajectories() returns
+    # cached candidates from the previous call rather than invoking HippocampalModule
+    # for fresh proposals. Ablatable — set False for NO_GATE condition in EXQ-020.
+    action_loop_gate_enabled: bool = False
+
     @classmethod
     def from_dims(
         cls,

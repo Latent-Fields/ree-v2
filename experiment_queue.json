@@ -309,6 +309,31 @@
       ]
     },
     {
+      "queue_id": "EXQ-020",
+      "backlog_id": null,
+      "claim_id": "MECH-057a",
+      "title": "Action-Loop Completion Gate (V2 Multi-Step Substrate)",
+      "description": "Tests MECH-057a: does the action-loop completion gate reduce harm in a genuinely multi-step committed action sequence substrate? CausalGridWorld extended with subgoal_mode=True (3 waypoints, W0→W1→W2 sequence). Three conditions: FULL (gate=True, attribution=True), NO_GATE (gate=False, attribution=True), NO_ATTRIBUTION (gate=True, attribution=False). Primary metric: last-Q total harm. Pass criteria: harm[NO_GATE]/harm[FULL] >= 1.10 AND harm[NO_ATTRIBUTION]/harm[FULL] >= 1.05. Partial PASS if only criterion 1 met. Removes substrate limitation that caused EXQ-004, EXQ-007, and prior V2 re-run to fail.",
+      "script": "experiments/action_loop_completion_gate.py",
+      "args": [
+        "--episodes",
+        "250",
+        "--seeds",
+        "7",
+        "42",
+        "99",
+        "13",
+        "77"
+      ],
+      "seeds": 5,
+      "conditions": 3,
+      "episodes_per_run": 250,
+      "estimated_minutes": 94,
+      "status": "pending",
+      "status_reason": "Script written 2026-03-15; subgoal_mode added to CausalGridWorld; action_loop_gate added to REEAgent. Smoke run (5 eps, 1 seed) PASS. Ready for full run.",
+      "ree_version": "v2"
+    },
+    {
       "queue_id": "EXQ-028",
       "backlog_id": "EVB-0047",
       "claim_id": "MECH-072",

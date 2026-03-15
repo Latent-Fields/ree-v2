@@ -29,12 +29,16 @@ Every step(), info['transition_type'] encodes what happened:
   "agent_caused_hazard"   — stepped on a contaminated cell the agent created
   "env_caused_hazard"     — stepped on a hazard that drifted there from env
   "resource"              — collected a resource
+  "waypoint"              — visited next waypoint in sequence (subgoal_mode only)
+  "sequence_complete"     — completed all waypoints in order (subgoal_mode only)
   "none"                  — normal step, no event
 
 info also includes:
   "contamination_delta"   — contamination added this step at the agent's cell
   "env_drift_occurred"    — whether background drift happened this step
   "footprint_at_cell"     — agent's visit count at the cell just entered
+  "sequence_in_progress"  — bool: agent is mid-committed-sequence (subgoal_mode)
+  "sequence_step"         — int: which waypoint was just reached (subgoal_mode)
 
 Observation additions vs GridWorld
 ------------------------------------
@@ -43,6 +47,22 @@ The observation includes two extra channels compared to V1 GridWorld:
     in the agent's 5×5 neighbourhood — reveals the agent's own footprint
   - Footprint density (1 float): normalised visit count at the agent's
     current cell — for self-model calibration
+
+Sub-goal mode (subgoal_mode=True)
+----------------------------------
+Adds waypoint cells that the agent must visit in sequence to earn a
+completion reward. This creates genuine multi-step committed action
+sequences (required by MECH-057a / EXQ-020).
+
+  - num_waypoints waypoint cells are placed at reset.
+  - Visiting waypoint 0 starts a committed sequence (sequence_in_progress=True).
+  - Visiting waypoints 1, 2, ... in order advances the sequence.
+  - Completing all waypoints gives waypoint_completion_reward; waypoints respawn.
+  - Visiting a waypoint out of order has no effect.
+  - If sequence_commitment_timeout steps pass without hitting the next waypoint,
+    the sequence resets (no completion reward; waypoints respawn).
+  - Hazards remain active throughout, creating real interruption pressure.
+  - Backward-compatible: subgoal_mode=False preserves all existing behaviour.
 """
 
 from dataclasses import dataclass
@@ -86,6 +106,7 @@ class CausalGridWorld:
         "hazard": 3,
         "contaminated": 4,  # Agent-caused hazard
         "agent": 5,
+        "waypoint": 6,      # Sub-goal waypoint (subgoal_mode only)
     }
 
     def __init__(
@@ -102,6 +123,12 @@ class CausalGridWorld:
         resource_benefit: float = 0.3,
         energy_decay: float = 0.01,
         seed: Optional[int] = None,
+        # --- Sub-goal mode (MECH-057a / EXQ-020) ---
+        subgoal_mode: bool = False,
+        num_waypoints: int = 3,
+        waypoint_visit_reward: float = 0.2,
+        waypoint_completion_reward: float = 0.8,
+        sequence_commitment_timeout: int = 20,
     ):
         """
         Args:
@@ -118,6 +145,16 @@ class CausalGridWorld:
             resource_benefit: Benefit signal from collecting a resource
             energy_decay: Energy lost per step
             seed: RNG seed for reproducibility
+            subgoal_mode: If True, place waypoints that must be visited in order.
+                Creates genuine multi-step committed action sequences for
+                MECH-057a / EXQ-020. Default False preserves original behaviour.
+            num_waypoints: Number of waypoints in the sequence (subgoal_mode only)
+            waypoint_visit_reward: Reward for visiting each intermediate waypoint
+                in the correct order (subgoal_mode only)
+            waypoint_completion_reward: Reward for completing the full sequence
+                (visiting all waypoints in order) (subgoal_mode only)
+            sequence_commitment_timeout: Max steps allowed between consecutive
+                waypoint visits before the sequence resets (subgoal_mode only)
         """
         self.size = size
         self.num_hazards = num_hazards
@@ -130,6 +167,13 @@ class CausalGridWorld:
         self.contaminated_harm = contaminated_harm
         self.resource_benefit = resource_benefit
         self.energy_decay = energy_decay
+
+        # Sub-goal mode
+        self.subgoal_mode = subgoal_mode
+        self.num_waypoints = num_waypoints
+        self.waypoint_visit_reward = waypoint_visit_reward
+        self.waypoint_completion_reward = waypoint_completion_reward
+        self.sequence_commitment_timeout = sequence_commitment_timeout
 
         self._rng = np.random.default_rng(seed)
 
@@ -201,6 +245,20 @@ class CausalGridWorld:
             rx, ry = available.pop()
             self.grid[rx, ry] = self.ENTITY_TYPES["resource"]
             self.resources.append([rx, ry])
+
+        # Sub-goal waypoints (subgoal_mode only)
+        self.waypoints: List[List[int]] = []
+        self._next_waypoint_idx: int = 0      # Index of next expected waypoint
+        self._sequence_in_progress: bool = False
+        self._sequence_step: int = 0           # Last waypoint index reached
+        self._steps_since_waypoint: int = 0    # Steps since last waypoint hit
+        self._sequences_completed: int = 0
+
+        if self.subgoal_mode:
+            for _ in range(min(self.num_waypoints, len(available))):
+                wx, wy = available.pop()
+                self.grid[wx, wy] = self.ENTITY_TYPES["waypoint"]
+                self.waypoints.append([wx, wy])
 
         self.steps = 0
         self.total_harm = 0.0
@@ -276,6 +334,46 @@ class CausalGridWorld:
                 # Remove this resource; it may respawn later via drift
                 self.resources = [r for r in self.resources if not (r[0] == new_x and r[1] == new_y)]
 
+            elif target_type == self.ENTITY_TYPES["waypoint"] and self.subgoal_mode:
+                # Waypoint visit — check if this is the correct next waypoint
+                wp_idx = next(
+                    (i for i, w in enumerate(self.waypoints)
+                     if w[0] == new_x and w[1] == new_y),
+                    None
+                )
+                if wp_idx == self._next_waypoint_idx:
+                    # Correct next waypoint in sequence
+                    self._next_waypoint_idx += 1
+                    self._sequence_step = wp_idx
+                    self._steps_since_waypoint = 0
+
+                    if wp_idx == 0:
+                        # First waypoint — sequence begins
+                        self._sequence_in_progress = True
+
+                    # Remove visited waypoint from grid
+                    self.grid[new_x, new_y] = self.ENTITY_TYPES["empty"]
+                    self.waypoints[wp_idx] = [-1, -1]  # Mark as consumed
+
+                    if self._next_waypoint_idx >= self.num_waypoints:
+                        # All waypoints visited in order — sequence complete
+                        harm_signal = self.waypoint_completion_reward
+                        self.total_benefit += self.waypoint_completion_reward
+                        transition_type = "sequence_complete"
+                        self._sequence_in_progress = False
+                        self._sequence_step = 0
+                        self._next_waypoint_idx = 0
+                        self._sequences_completed += 1
+                        self._steps_since_waypoint = 0
+                        # Respawn waypoints for next sequence
+                        self._respawn_waypoints()
+                    else:
+                        # Intermediate waypoint — partial reward, sequence continues
+                        harm_signal = self.waypoint_visit_reward
+                        self.total_benefit += self.waypoint_visit_reward
+                        transition_type = "waypoint"
+                # else: wrong waypoint visited out of order — no effect
+
             # Move agent
             self.agent_x = new_x
             self.agent_y = new_y
@@ -292,6 +390,17 @@ class CausalGridWorld:
 
         # --- Energy decay ---
         self.agent_energy = max(0.0, self.agent_energy - self.energy_decay)
+
+        # --- Sequence timeout check (subgoal_mode) ---
+        if self.subgoal_mode and self._sequence_in_progress:
+            self._steps_since_waypoint += 1
+            if self._steps_since_waypoint > self.sequence_commitment_timeout:
+                # Sequence timed out — reset progress, respawn consumed waypoints
+                self._sequence_in_progress = False
+                self._sequence_step = 0
+                self._next_waypoint_idx = 0
+                self._steps_since_waypoint = 0
+                self._respawn_waypoints()
 
         # --- Background env drift ---
         env_drift_occurred = False
@@ -318,9 +427,52 @@ class CausalGridWorld:
             "steps": self.steps,
             "total_harm": self.total_harm,
             "total_benefit": self.total_benefit,
+            # Sub-goal sequence state (always present; False/0 when subgoal_mode=False)
+            "sequence_in_progress": self._sequence_in_progress,
+            "sequence_step": self._sequence_step,
+            "sequences_completed": self._sequences_completed,
         }
 
         return self._get_observation(), harm_signal, done, info
+
+    # ------------------------------------------------------------------
+    # Sub-goal waypoint management (subgoal_mode only)
+    # ------------------------------------------------------------------
+
+    def _respawn_waypoints(self) -> None:
+        """
+        Respawn all waypoints at new random empty cells.
+
+        Called after sequence completion or timeout to reset the
+        waypoint sequence for the next committed-sequence cycle.
+        """
+        if not self.subgoal_mode:
+            return
+
+        # Clear any remaining waypoints from the grid
+        for wp in self.waypoints:
+            wx, wy = wp
+            if (
+                0 < wx < self.size - 1
+                and 0 < wy < self.size - 1
+                and self.grid[wx, wy] == self.ENTITY_TYPES["waypoint"]
+            ):
+                self.grid[wx, wy] = self.ENTITY_TYPES["empty"]
+
+        # Find available cells
+        empty_cells = [
+            (i, j)
+            for i in range(1, self.size - 1)
+            for j in range(1, self.size - 1)
+            if self.grid[i, j] == self.ENTITY_TYPES["empty"]
+        ]
+        self._rng.shuffle(empty_cells)
+
+        self.waypoints = []
+        for k in range(min(self.num_waypoints, len(empty_cells))):
+            wx, wy = empty_cells[k]
+            self.grid[wx, wy] = self.ENTITY_TYPES["waypoint"]
+            self.waypoints.append([wx, wy])
 
     # ------------------------------------------------------------------
     # Background drift (env-caused transitions)
@@ -415,6 +567,16 @@ class CausalGridWorld:
     # Utilities
     # ------------------------------------------------------------------
 
+    def get_subgoal_state(self) -> dict:
+        """Return current sub-goal sequence state (subgoal_mode only)."""
+        return {
+            "sequence_in_progress": self._sequence_in_progress,
+            "sequence_step": self._sequence_step,
+            "next_waypoint_idx": self._next_waypoint_idx,
+            "sequences_completed": self._sequences_completed,
+            "waypoints": [(w[0], w[1]) for w in self.waypoints if w[0] >= 0],
+        }
+
     def get_contamination_map(self) -> np.ndarray:
         """Return the full contamination grid (agent-caused footprint)."""
         return self.contamination_grid.copy()
@@ -441,6 +603,7 @@ class CausalGridWorld:
             self.ENTITY_TYPES["hazard"]: "X",
             self.ENTITY_TYPES["contaminated"]: "c",
             self.ENTITY_TYPES["agent"]: "A",
+            self.ENTITY_TYPES["waypoint"]: "W",
         }
 
         lines = []

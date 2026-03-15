@@ -1,0 +1,78 @@
+{
+  "experiment": "action_loop_completion_gate",
+  "claim": "MECH-057a",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-15T17:45:43.730022+00:00",
+  "config": {
+    "num_episodes": 5,
+    "max_steps": 100,
+    "seeds": [
+      7
+    ],
+    "grid_size": 10,
+    "num_hazards": 4,
+    "num_waypoints": 3,
+    "waypoint_visit_reward": 0.2,
+    "waypoint_completion_reward": 0.8,
+    "sequence_commitment_timeout": 20,
+    "environment": "CausalGridWorld(subgoal_mode=True)",
+    "e1_lr": 0.0001,
+    "policy_lr": 0.001,
+    "e2_lr": 0.001,
+    "gate_harm_ratio_threshold": 1.1,
+    "attribution_harm_ratio_threshold": 1.05
+  },
+  "verdict": "PASS",
+  "partial_pass": false,
+  "aggregate": {
+    "full_harm_last_quarter": 1.0,
+    "no_gate_harm_last_quarter": 1.8,
+    "no_attribution_harm_last_quarter": 1.2,
+    "no_gate_vs_full_ratio": 1.8,
+    "no_attribution_vs_full_ratio": 1.2,
+    "criterion_1_gate_met": true,
+    "criterion_2_attribution_met": true,
+    "criteria_met": 2
+  },
+  "per_run": [
+    {
+      "condition": "FULL",
+      "seed": 7,
+      "gate_enabled": true,
+      "attribution_enabled": true,
+      "first_quarter_total_harm": 1.4,
+      "last_quarter_total_harm": 1.0,
+      "first_quarter_sequence_harm": 0.0,
+      "last_quarter_sequence_harm": 0.0,
+      "mean_sequences_completed": 0,
+      "last_quarter_sequences_completed": 0,
+      "episode_count": 5
+    },
+    {
+      "condition": "NO_GATE",
+      "seed": 7,
+      "gate_enabled": false,
+      "attribution_enabled": true,
+      "first_quarter_total_harm": 1.3,
+      "last_quarter_total_harm": 1.8,
+      "first_quarter_sequence_harm": 0.0,
+      "last_quarter_sequence_harm": 0.0,
+      "mean_sequences_completed": 0,
+      "last_quarter_sequences_completed": 0,
+      "episode_count": 5
+    },
+    {
+      "condition": "NO_ATTRIBUTION",
+      "seed": 7,
+      "gate_enabled": true,
+      "attribution_enabled": false,
+      "first_quarter_total_harm": 1.3,
+      "last_quarter_total_harm": 1.2,
+      "first_quarter_sequence_harm": 0.0,
+      "last_quarter_sequence_harm": 0.0,
+      "mean_sequences_completed": 0,
+      "last_quarter_sequences_completed": 0,
+      "episode_count": 5
+    }
+  ]
+}
