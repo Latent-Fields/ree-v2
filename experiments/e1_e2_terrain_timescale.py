@@ -89,6 +89,8 @@ POST_DRIFT_WINDOW = 3
 E1_LR_SLOW: float = 5e-5      # slow — matches contamination terrain timescale
 POLICY_LR_FAST: float = 1e-3  # fast — matches env drift timescale
 
+E2_LR: float = 1e-3  # E2 is a fast motor-sensory model; fixed across all conditions
+
 CONDITION_LRS: Dict[str, Tuple[float, float]] = {
     "SEPARATED":      (E1_LR_SLOW, POLICY_LR_FAST),
     "COLLAPSED_FAST": (1e-3, 1e-3),
@@ -108,8 +110,8 @@ def make_optimizers(
     agent: REEAgent,
     e1_lr: float,
     policy_lr: float,
-) -> Tuple[torch.optim.Optimizer, torch.optim.Optimizer]:
-    """Separate optimizers for E1 world-model params and E3 policy params."""
+) -> Tuple[torch.optim.Optimizer, torch.optim.Optimizer, torch.optim.Optimizer]:
+    """Separate optimizers for E1 world-model, E3 policy, and E2 transition model."""
     e1_params = (
         list(agent.e1.parameters())
         + list(agent.latent_stack.parameters())
@@ -118,7 +120,8 @@ def make_optimizers(
     policy_params = list(agent.e3.parameters())
     e1_opt = torch.optim.Adam(e1_params, lr=e1_lr)
     policy_opt = torch.optim.Adam(policy_params, lr=policy_lr)
-    return e1_opt, policy_opt
+    e2_opt = torch.optim.Adam(list(agent.e2.parameters()), lr=E2_LR)
+    return e1_opt, policy_opt, e2_opt
 
 
 # ── Episode runner ────────────────────────────────────────────────────────────
@@ -128,6 +131,7 @@ def run_episode(
     env: CausalGridWorld,
     e1_opt: torch.optim.Optimizer,
     policy_opt: torch.optim.Optimizer,
+    e2_opt: torch.optim.Optimizer,
     max_steps: int,
 ) -> Dict[str, Any]:
     """
@@ -149,6 +153,9 @@ def run_episode(
     post_drift_countdown = 0
     post_drift_env_harm_steps = 0
 
+    prev_latent_z: Optional[torch.Tensor] = None
+    prev_action_tensor: Optional[torch.Tensor] = None
+
     for _ in range(max_steps):
         obs_tensor = torch.FloatTensor(obs)
         if obs_tensor.dim() == 1:
@@ -159,11 +166,17 @@ def run_episode(
             agent.update_latent(encoded)
             candidates = agent.generate_trajectories(agent._current_latent)
 
+        # Capture z_t; record E2 transition (z_{t-1}, a_{t-1}, z_t)
+        z_t = agent._current_latent.z_gamma.detach().clone()
+        if prev_latent_z is not None and prev_action_tensor is not None:
+            agent.record_transition(prev_latent_z, prev_action_tensor, z_t)
+
         result = agent.e3.select(candidates)
         if result.log_prob is not None:
             log_probs.append(result.log_prob)
 
-        action_idx = result.selected_action.argmax(dim=-1).item()
+        action_tensor = result.selected_action.detach().clone()
+        action_idx = action_tensor.argmax(dim=-1).item()
         next_obs, harm, done, info = env.step(action_idx)
 
         transition_type = info.get("transition_type", "none")
@@ -184,6 +197,8 @@ def run_episode(
             post_drift_countdown -= 1
 
         agent.update_residue(harm)
+        prev_latent_z = z_t
+        prev_action_tensor = action_tensor
         obs = next_obs
         steps += 1
         if done:
@@ -216,6 +231,17 @@ def run_episode(
         e1_opt.step()
         e1_loss_val = e1_loss.item()
 
+    # ── E2 motor-sensory update ──
+    e2_loss = agent.compute_e2_loss()
+    if e2_loss.requires_grad:
+        e2_opt.zero_grad()
+        e2_loss.backward()
+        torch.nn.utils.clip_grad_norm_(
+            [p for grp in e2_opt.param_groups for p in grp["params"]],
+            MAX_GRAD_NORM,
+        )
+        e2_opt.step()
+
     contamination_avoidance_rate = 1.0 - agent_caused_harm_steps / max(1, steps)
     post_drift_harm_rate = post_drift_env_harm_steps / max(1, drift_events)
 
@@ -247,14 +273,14 @@ def run_condition(
     env = CausalGridWorld(size=grid_size, num_hazards=num_hazards)
     config = REEConfig.from_dims(env.observation_dim, env.action_dim)
     agent = REEAgent(config=config)
-    e1_opt, policy_opt = make_optimizers(agent, e1_lr, policy_lr)
+    e1_opt, policy_opt, e2_opt = make_optimizers(agent, e1_lr, policy_lr)
 
     ep_harms: List[float] = []
     ep_avoidances: List[float] = []
     ep_drift_rates: List[float] = []
 
     for ep in range(num_episodes):
-        metrics = run_episode(agent, env, e1_opt, policy_opt, max_steps)
+        metrics = run_episode(agent, env, e1_opt, policy_opt, e2_opt, max_steps)
         ep_harms.append(metrics["total_harm"])
         ep_avoidances.append(metrics["contamination_avoidance_rate"])
         ep_drift_rates.append(metrics["post_drift_harm_rate"])

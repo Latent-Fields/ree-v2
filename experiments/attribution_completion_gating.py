@@ -97,6 +97,7 @@ DEFAULT_NUM_HAZARDS = 4
 MAX_GRAD_NORM = 1.0
 E1_LR = 1e-4
 POLICY_LR = 1e-3
+E2_LR = 1e-3
 
 # ── Pass thresholds ───────────────────────────────────────────────────────────
 
@@ -110,8 +111,8 @@ TOTAL_HARM_TOLERANCE: float = 1.10
 
 def make_optimizers(
     agent: REEAgent,
-) -> Tuple[torch.optim.Optimizer, torch.optim.Optimizer]:
-    """Build E1 world-model and E3 policy optimizers (shared across conditions)."""
+) -> Tuple[torch.optim.Optimizer, torch.optim.Optimizer, torch.optim.Optimizer]:
+    """Build E1 world-model, E3 policy, and E2 transition-model optimizers."""
     e1_params = (
         list(agent.e1.parameters())
         + list(agent.latent_stack.parameters())
@@ -120,7 +121,8 @@ def make_optimizers(
     policy_params = list(agent.e3.parameters())
     e1_opt = torch.optim.Adam(e1_params, lr=E1_LR)
     policy_opt = torch.optim.Adam(policy_params, lr=POLICY_LR)
-    return e1_opt, policy_opt
+    e2_opt = torch.optim.Adam(list(agent.e2.parameters()), lr=E2_LR)
+    return e1_opt, policy_opt, e2_opt
 
 
 # ── Episode runner ────────────────────────────────────────────────────────────
@@ -130,6 +132,7 @@ def run_episode(
     env: CausalGridWorld,
     e1_opt: torch.optim.Optimizer,
     policy_opt: torch.optim.Optimizer,
+    e2_opt: torch.optim.Optimizer,
     condition: str,
     max_steps: int,
 ) -> Dict[str, Any]:
@@ -141,8 +144,7 @@ def run_episode(
       FREE_REPLAN       : G = -total_harm          (mixed signal)
       ATTRIBUTION_BLIND : G = -env_caused_harm     (env signal only; no self-attribution)
 
-    E1 world-model update is identical across all conditions: it always receives
-    the full prediction loss, so the world model quality is held constant.
+    E1 and E2 world-model updates are identical across all conditions.
     """
     agent.reset()
     obs = env.reset()
@@ -152,6 +154,9 @@ def run_episode(
     agent_caused_harm = 0.0
     env_caused_harm = 0.0
     steps = 0
+
+    prev_latent_z: Optional[torch.Tensor] = None
+    prev_action_tensor: Optional[torch.Tensor] = None
 
     for _ in range(max_steps):
         obs_tensor = torch.FloatTensor(obs)
@@ -163,11 +168,17 @@ def run_episode(
             agent.update_latent(encoded)
             candidates = agent.generate_trajectories(agent._current_latent)
 
+        # Capture z_t; record E2 transition (z_{t-1}, a_{t-1}, z_t)
+        z_t = agent._current_latent.z_gamma.detach().clone()
+        if prev_latent_z is not None and prev_action_tensor is not None:
+            agent.record_transition(prev_latent_z, prev_action_tensor, z_t)
+
         result = agent.e3.select(candidates)
         if result.log_prob is not None:
             log_probs.append(result.log_prob)
 
-        action_idx = result.selected_action.argmax(dim=-1).item()
+        action_tensor = result.selected_action.detach().clone()
+        action_idx = action_tensor.argmax(dim=-1).item()
         next_obs, harm, done, info = env.step(action_idx)
 
         transition_type = info.get("transition_type", "none")
@@ -180,6 +191,8 @@ def run_episode(
             env_caused_harm += actual_harm
 
         agent.update_residue(harm)
+        prev_latent_z = z_t
+        prev_action_tensor = action_tensor
         obs = next_obs
         steps += 1
         if done:
@@ -219,6 +232,17 @@ def run_episode(
         e1_opt.step()
         e1_loss_val = e1_loss.item()
 
+    # ── E2 motor-sensory update (same across all conditions) ──
+    e2_loss = agent.compute_e2_loss()
+    if e2_loss.requires_grad:
+        e2_opt.zero_grad()
+        e2_loss.backward()
+        torch.nn.utils.clip_grad_norm_(
+            [p for grp in e2_opt.param_groups for p in grp["params"]],
+            MAX_GRAD_NORM,
+        )
+        e2_opt.step()
+
     agent_harm_frac = (
         agent_caused_harm / (total_harm + 1e-8) if total_harm > 1e-8 else 0.0
     )
@@ -249,7 +273,7 @@ def run_condition(
     env = CausalGridWorld(size=grid_size, num_hazards=num_hazards)
     config = REEConfig.from_dims(env.observation_dim, env.action_dim)
     agent = REEAgent(config=config)
-    e1_opt, policy_opt = make_optimizers(agent)
+    e1_opt, policy_opt, e2_opt = make_optimizers(agent)
 
     ep_total_harms: List[float] = []
     ep_agent_harms: List[float] = []
@@ -257,7 +281,7 @@ def run_condition(
     ep_agent_fracs: List[float] = []
 
     for ep in range(num_episodes):
-        metrics = run_episode(agent, env, e1_opt, policy_opt, condition, max_steps)
+        metrics = run_episode(agent, env, e1_opt, policy_opt, e2_opt, condition, max_steps)
         ep_total_harms.append(metrics["total_harm"])
         ep_agent_harms.append(metrics["agent_caused_harm"])
         ep_env_harms.append(metrics["env_caused_harm"])

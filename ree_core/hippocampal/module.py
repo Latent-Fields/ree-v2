@@ -21,10 +21,15 @@ Architecture:
    scored against terrain + E2 harm predictions
 3. Returns final candidates for E3 to evaluate
 
-V3 considerations:
-- The terrain_prior is currently a simple MLP. A more principled design
-  would model the hippocampus as learning a map of the affective landscape
-  and navigating it via place-cell-like representations.
+V3 considerations (SD-004 — see docs/architecture/e2.md §5):
+- The terrain_prior is currently a simple MLP operating in z_gamma state
+  space. The V3 target replaces this with navigation over ACTION OBJECTS —
+  compressed latent representations of action transformations produced by
+  E2's bottleneck layer. Action objects are the place-cell-like primitives
+  the hippocampal map should be built over, not raw states.
+  Benefits: (a) map compaction — many states share the same action objects;
+  (b) E2 hidden layer can be smaller (bottleneck reduces dimensionality);
+  (c) CEM rollouts can be much longer horizon in action-object space.
 - The CEM scoring function here (harm + residue) is independent of E3's
   J(ζ) scoring. Whether these should be unified or kept separate is an
   open design question.

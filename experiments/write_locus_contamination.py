@@ -50,6 +50,7 @@ DEFAULT_NUM_HAZARDS = 4
 MAX_GRAD_NORM = 1.0
 E1_LR = 1e-4
 POLICY_LR = 1e-3
+E2_LR = 1e-3
 
 CONTAM_E1_WEIGHT = 3.0
 RESIDUE_CRITERION_FACTOR = 1.1
@@ -73,8 +74,8 @@ def pearson_corr(xs: List[float], ys: List[float]) -> float:
 
 def make_optimizers(
     agent: REEAgent,
-) -> Tuple[torch.optim.Optimizer, torch.optim.Optimizer]:
-    """Build two optimizers matching REETrainer's parameter grouping."""
+) -> Tuple[torch.optim.Optimizer, torch.optim.Optimizer, torch.optim.Optimizer]:
+    """Build three optimizers: E1 world model, E2 motor model, policy."""
     e1_params = (
         list(agent.e1.parameters())
         + list(agent.latent_stack.parameters())
@@ -83,7 +84,8 @@ def make_optimizers(
     policy_params = list(agent.e3.parameters())
     e1_opt = torch.optim.Adam(e1_params, lr=E1_LR)
     policy_opt = torch.optim.Adam(policy_params, lr=POLICY_LR)
-    return e1_opt, policy_opt
+    e2_opt = torch.optim.Adam(list(agent.e2.parameters()), lr=E2_LR)
+    return e1_opt, policy_opt, e2_opt
 
 
 def get_e2_predicted_harm(trajectory) -> float:
@@ -98,6 +100,7 @@ def run_episode(
     env: CausalGridWorld,
     e1_opt: torch.optim.Optimizer,
     policy_opt: torch.optim.Optimizer,
+    e2_opt: torch.optim.Optimizer,
     condition: str,
     max_steps: int,
 ) -> Dict[str, Any]:
@@ -112,6 +115,8 @@ def run_episode(
     total_actual_harm = 0.0
     total_residue_added = 0.0
     steps = 0
+    prev_latent_z = None
+    prev_action_tensor = None
 
     for _ in range(max_steps):
         obs_tensor = torch.FloatTensor(obs)
@@ -122,6 +127,10 @@ def run_episode(
             encoded = agent.sense(obs_tensor)
             agent.update_latent(encoded)
             candidates = agent.generate_trajectories(agent._current_latent)
+
+        current_z = agent._current_latent.z_gamma.detach()
+        if prev_latent_z is not None and prev_action_tensor is not None:
+            agent.record_transition(prev_latent_z, prev_action_tensor, current_z)
 
         result = agent.e3.select(candidates)
         if result.log_prob is not None:
@@ -137,6 +146,9 @@ def run_episode(
             total_residue_added += e2_pred
 
         action_idx = result.selected_action.argmax(dim=-1).item()
+        prev_latent_z = current_z
+        prev_action_tensor = result.selected_action.detach()
+
         next_obs, harm, done, _info = env.step(action_idx)
 
         actual_harm = abs(harm) if harm < 0 else 0.0
@@ -184,6 +196,15 @@ def run_episode(
         e1_opt.step()
         e1_loss_val = float(e1_loss.item())
 
+    e2_loss = agent.compute_e2_loss()
+    if e2_loss.requires_grad:
+        e2_opt.zero_grad()
+        e2_loss.backward()
+        torch.nn.utils.clip_grad_norm_(
+            list(agent.e2.parameters()), MAX_GRAD_NORM,
+        )
+        e2_opt.step()
+
     mean_actual = statistics.mean(step_actual_harms) if step_actual_harms else 0.0
     mean_e2_pred = statistics.mean(step_e2_preds) if step_e2_preds else 0.0
     commit_rate = committed_count / steps if steps > 0 else 0.0
@@ -213,14 +234,14 @@ def run_condition(
     env = CausalGridWorld(size=grid_size, num_hazards=num_hazards)
     config = REEConfig.from_dims(env.observation_dim, env.action_dim)
     agent = REEAgent(config=config)
-    e1_opt, policy_opt = make_optimizers(agent)
+    e1_opt, policy_opt, e2_opt = make_optimizers(agent)
 
     ep_harms: List[float] = []
     ep_e1_losses: List[float] = []
     ep_residue_totals: List[float] = []
 
     for ep in range(num_episodes):
-        metrics = run_episode(agent, env, e1_opt, policy_opt, condition, max_steps)
+        metrics = run_episode(agent, env, e1_opt, policy_opt, e2_opt, condition, max_steps)
         ep_harms.append(metrics["total_harm"])
         ep_e1_losses.append(metrics["e1_loss"])
         ep_residue_totals.append(metrics["total_residue_added"])

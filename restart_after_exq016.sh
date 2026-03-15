@@ -1,8 +1,8 @@
 #!/bin/bash
 # Waits for EXQ-016 to leave 'running' status, then restarts the runner
 # so EXQ-017 and EXQ-018 get the fixed RE_RUN_DONE regex.
-STATUS=/Users/dgolden/Documents/GitHub/REE_assembly/evidence/experiments/runner_status.json
-RUNNER_DIR=/Users/dgolden/Documents/GitHub/ree-v2
+STATUS=/Users/dgolden/Documents/GitHub/REE_Working/REE_assembly/evidence/experiments/runner_status.json
+RUNNER_DIR=/Users/dgolden/Documents/GitHub/REE_Working/ree-v2
 
 echo "[watcher] Waiting for EXQ-016 to complete..."
 while true; do

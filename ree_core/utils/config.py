@@ -72,12 +72,23 @@ class E2Config:
     random shooting (used internally by HippocampalModule during CEM
     iterations) and forward_counterfactual() for SD-003 self-attribution
     experiments.
+
+    Architectural note — E2 horizon vs E1 horizon:
+    E2 operates exclusively on z_gamma, the unified latent space of all
+    sensory modalities (where coherent objects form). It does NOT operate
+    on raw sensory streams. E2's rollout_horizon should be LONGER than
+    E1's prediction_horizon because:
+    - E1 predicts the "perceived present" by predicting a short way ahead
+      in sensory-only latent space (associative, no action conditioning).
+    - E2 predicts how motor actions will transform latent sensory objects
+      further into the future, supporting multi-step trajectory planning.
+    E1 prediction_horizon default: 20. E2 rollout_horizon default: 30.
     """
     latent_dim: int = 64
     action_dim: int = 4
     hidden_dim: int = 128
     num_layers: int = 2
-    rollout_horizon: int = 10  # Steps for trajectory rollout
+    rollout_horizon: int = 30  # Steps for trajectory rollout; must exceed E1.prediction_horizon
     num_candidates: int = 32   # Default candidate count (used by HippocampalModule)
     learning_rate: float = 3e-4
 

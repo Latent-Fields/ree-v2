@@ -1,0 +1,86 @@
+{
+  "experiment": "residue_trajectory_placement",
+  "claim": "MECH-056",
+  "evb_id": "EVB-0039",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-14T22:09:19.450396+00:00",
+  "config": {
+    "num_episodes": 200,
+    "max_steps": 100,
+    "seeds": [
+      7,
+      42,
+      99
+    ],
+    "grid_size": 10,
+    "num_hazards": 4,
+    "environment": "CausalGridWorld",
+    "intermediate_weight_scheme": "linear_ramp_i_over_H"
+  },
+  "verdict": "PASS",
+  "partial_support": false,
+  "aggregate": {
+    "trajectory_wide_harm_last_quarter": 1.2493,
+    "endpoint_only_harm_last_quarter": 1.2273,
+    "trajectory_wide_mean_intermediate_residue_mass": 18.1105,
+    "harm_tolerance_factor": 1.05,
+    "path_spread_criterion_met": true,
+    "harm_avoidance_criterion_met": true
+  },
+  "per_run": [
+    {
+      "condition": "TRAJECTORY-WIDE",
+      "seed": 7,
+      "first_quarter_harm": 1.234,
+      "last_quarter_harm": 1.262,
+      "mean_intermediate_residue_mass": 18.01625,
+      "mean_trajectory_residue_cost": 180.752313,
+      "episode_count": 200
+    },
+    {
+      "condition": "ENDPOINT-ONLY",
+      "seed": 7,
+      "first_quarter_harm": 1.254,
+      "last_quarter_harm": 1.218,
+      "mean_intermediate_residue_mass": 0.0,
+      "mean_trajectory_residue_cost": 25.951117,
+      "episode_count": 200
+    },
+    {
+      "condition": "TRAJECTORY-WIDE",
+      "seed": 42,
+      "first_quarter_harm": 1.252,
+      "last_quarter_harm": 1.258,
+      "mean_intermediate_residue_mass": 18.23375,
+      "mean_trajectory_residue_cost": 173.100718,
+      "episode_count": 200
+    },
+    {
+      "condition": "ENDPOINT-ONLY",
+      "seed": 42,
+      "first_quarter_harm": 1.234,
+      "last_quarter_harm": 1.228,
+      "mean_intermediate_residue_mass": 0.0,
+      "mean_trajectory_residue_cost": 22.188653,
+      "episode_count": 200
+    },
+    {
+      "condition": "TRAJECTORY-WIDE",
+      "seed": 99,
+      "first_quarter_harm": 1.246,
+      "last_quarter_harm": 1.228,
+      "mean_intermediate_residue_mass": 18.0815,
+      "mean_trajectory_residue_cost": 203.283266,
+      "episode_count": 200
+    },
+    {
+      "condition": "ENDPOINT-ONLY",
+      "seed": 99,
+      "first_quarter_harm": 1.236,
+      "last_quarter_harm": 1.236,
+      "mean_intermediate_residue_mass": 0.0,
+      "mean_trajectory_residue_cost": 25.973089,
+      "episode_count": 200
+    }
+  ]
+}

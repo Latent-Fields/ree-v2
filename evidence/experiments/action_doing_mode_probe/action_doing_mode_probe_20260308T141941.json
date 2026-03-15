@@ -1,0 +1,105 @@
+{
+  "experiment": "action_doing_mode_probe",
+  "claim": "MECH-025",
+  "evb_id": "EVB-0025",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-08T13:20:31.377993+00:00",
+  "config": {
+    "num_episodes": 200,
+    "max_steps": 100,
+    "seeds": [
+      7,
+      42,
+      99
+    ],
+    "grid_size": 10,
+    "condition_hazards": {
+      "HIGH_CAUSAL": 8,
+      "LOW_CAUSAL": 1
+    },
+    "environment": "CausalGridWorld",
+    "e1_lr": 0.0001,
+    "policy_lr": 0.001,
+    "lift_margin": 0.05,
+    "slope_margin": 0.05
+  },
+  "verdict": "FAIL",
+  "partial_support": false,
+  "aggregate": {
+    "high_causal_precision_lift": 0.0,
+    "low_causal_precision_lift": 0.0,
+    "high_causal_slope": 0.0211,
+    "low_causal_slope": 0.0174,
+    "criterion_1_lift_met": false,
+    "criterion_2_slope_met": false,
+    "criteria_met": 0
+  },
+  "per_run": [
+    {
+      "condition": "HIGH_CAUSAL",
+      "seed": 7,
+      "num_hazards": 8,
+      "first_quarter_harm": 1.25,
+      "last_quarter_harm": 1.212,
+      "harm_reduction_slope": 0.0304,
+      "mean_action_precision_lift": 0.0,
+      "last_quarter_precision_lift": 0.0,
+      "episode_count": 200
+    },
+    {
+      "condition": "LOW_CAUSAL",
+      "seed": 7,
+      "num_hazards": 1,
+      "first_quarter_harm": 1.222,
+      "last_quarter_harm": 1.214,
+      "harm_reduction_slope": 0.0065,
+      "mean_action_precision_lift": 0.0,
+      "last_quarter_precision_lift": 0.0,
+      "episode_count": 200
+    },
+    {
+      "condition": "HIGH_CAUSAL",
+      "seed": 42,
+      "num_hazards": 8,
+      "first_quarter_harm": 1.212,
+      "last_quarter_harm": 1.214,
+      "harm_reduction_slope": -0.0017,
+      "mean_action_precision_lift": 0.0,
+      "last_quarter_precision_lift": 0.0,
+      "episode_count": 200
+    },
+    {
+      "condition": "LOW_CAUSAL",
+      "seed": 42,
+      "num_hazards": 1,
+      "first_quarter_harm": 1.218,
+      "last_quarter_harm": 1.218,
+      "harm_reduction_slope": 0.0,
+      "mean_action_precision_lift": 0.0,
+      "last_quarter_precision_lift": 0.0,
+      "episode_count": 200
+    },
+    {
+      "condition": "HIGH_CAUSAL",
+      "seed": 99,
+      "num_hazards": 8,
+      "first_quarter_harm": 1.218,
+      "last_quarter_harm": 1.176,
+      "harm_reduction_slope": 0.0345,
+      "mean_action_precision_lift": 0.0,
+      "last_quarter_precision_lift": 0.0,
+      "episode_count": 200
+    },
+    {
+      "condition": "LOW_CAUSAL",
+      "seed": 99,
+      "num_hazards": 1,
+      "first_quarter_harm": 1.228,
+      "last_quarter_harm": 1.172,
+      "harm_reduction_slope": 0.0456,
+      "mean_action_precision_lift": 0.0,
+      "last_quarter_precision_lift": 0.0,
+      "episode_count": 200
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "experiment": "precision_regime_probe",
+  "claim": "ARC-016",
+  "evb_id": "EVB-0024",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-08T12:34:28.042879+00:00",
+  "config": {
+    "num_episodes": 200,
+    "max_steps": 100,
+    "seeds": [
+      7,
+      42,
+      99
+    ],
+    "grid_size": 10,
+    "num_hazards": 4,
+    "environment": "CausalGridWorld",
+    "e1_lr": 0.0001,
+    "policy_lr": 0.001,
+    "high_precision_max": 2.0,
+    "high_precision_min": 1.0,
+    "low_precision_max": 0.5,
+    "low_precision_min": 0.1,
+    "precision_gap": 0.3,
+    "commit_rate_margin": 0.05,
+    "harm_factor": 0.95
+  },
+  "verdict": "FAIL",
+  "partial_support": true,
+  "aggregate": {
+    "high_mean_precision": 1.9968,
+    "low_mean_precision": 0.3,
+    "precision_gap_observed": 1.6968,
+    "high_commit_rate_last_quarter": 1.0,
+    "low_commit_rate_last_quarter": 0.0,
+    "high_harm_last_quarter": 1.2327,
+    "low_harm_last_quarter": 1.218,
+    "criterion_1_precision_gap_met": true,
+    "criterion_2_behavioral_distinction_met": false,
+    "criteria_met": 1
+  },
+  "per_run": [
+    {
+      "condition": "HIGH_REGIME",
+      "seed": 7,
+      "precision_max": 2.0,
+      "precision_min": 1.0,
+      "mean_precision": 1.9969,
+      "last_quarter_precision": 2.0,
+      "mean_commit_rate": 1.0,
+      "last_quarter_commit_rate": 1.0,
+      "last_quarter_harm": 1.246,
+      "episode_count": 200
+    },
+    {
+      "condition": "LOW_REGIME",
+      "seed": 7,
+      "precision_max": 0.5,
+      "precision_min": 0.1,
+      "mean_precision": 0.3,
+      "last_quarter_precision": 0.3,
+      "mean_commit_rate": 0.0,
+      "last_quarter_commit_rate": 0.0,
+      "last_quarter_harm": 1.244,
+      "episode_count": 200
+    },
+    {
+      "condition": "HIGH_REGIME",
+      "seed": 42,
+      "precision_max": 2.0,
+      "precision_min": 1.0,
+      "mean_precision": 1.9964,
+      "last_quarter_precision": 2.0,
+      "mean_commit_rate": 1.0,
+      "last_quarter_commit_rate": 1.0,
+      "last_quarter_harm": 1.226,
+      "episode_count": 200
+    },
+    {
+      "condition": "LOW_REGIME",
+      "seed": 42,
+      "precision_max": 0.5,
+      "precision_min": 0.1,
+      "mean_precision": 0.3,
+      "last_quarter_precision": 0.3,
+      "mean_commit_rate": 0.0,
+      "last_quarter_commit_rate": 0.0,
+      "last_quarter_harm": 1.236,
+      "episode_count": 200
+    },
+    {
+      "condition": "HIGH_REGIME",
+      "seed": 99,
+      "precision_max": 2.0,
+      "precision_min": 1.0,
+      "mean_precision": 1.9971,
+      "last_quarter_precision": 2.0,
+      "mean_commit_rate": 1.0,
+      "last_quarter_commit_rate": 1.0,
+      "last_quarter_harm": 1.226,
+      "episode_count": 200
+    },
+    {
+      "condition": "LOW_REGIME",
+      "seed": 99,
+      "precision_max": 0.5,
+      "precision_min": 0.1,
+      "mean_precision": 0.3,
+      "last_quarter_precision": 0.3,
+      "mean_commit_rate": 0.0,
+      "last_quarter_commit_rate": 0.0,
+      "last_quarter_harm": 1.174,
+      "episode_count": 200
+    }
+  ]
+}

@@ -1,18 +1,20 @@
 # ree-v2
 
-> **ARCHIVED — SYNTHETIC SCAFFOLDING ONLY (2026-02-26)**
-> This repo generates parametric synthetic data, not real experimental measurements.
-> All PASS/FAIL results it produced are unreliable as evidence for REE claims.
-> The active experimental substrate is `ree-v1-minimal`.
-> See `REE_assembly/evidence/experiments/INDEX.md` for details.
+V2 implementation substrate for REE claim experimentation. Upgraded from synthetic scaffolding (2026-02-26 archive) to a real ree_core implementation as of 2026-03-06.
 
-Qualification harness for REE substrate claims with contract-compatible experiment packs for `REE_assembly` ingestion.
+## V2 Architecture
 
-Primary scope in bootstrap:
-- claim coverage: `MECH-056`, `MECH-058`, `MECH-059`, `MECH-060`
-- interface compatibility: `experiment_pack/v1`, `hook_registry/v1`, `IMPL-022`
-- qualification lane policy with explicit local-vs-remote compute placement
-- active bridge hooks `HK-101..HK-104` plus cognifold trace artifacts (`TaskLoopObject` and `CouplingGraph`)
+- **HippocampalModule** (new in V2): terrain-navigated trajectory proposal. Resolves SD-001 — CEM-based trajectory search was misplaced in E2; it is now here, using E2 only as a forward rollout model.
+- **E2**: pure fast transition model `f(z_t, a_t) → z_{t+1}`. No longer performs candidate generation.
+- **CausalGridWorld**: real environment replacing synthetic data generation.
+- **SD-002 resolved (2026-03-06)**: E1 prior wired into HippocampalModule's terrain search (E1→HippocampalModule mutual constitution).
+- **SD-003**: `forward_counterfactual()` exposed via E2 for self-attribution. Substrate ready; experiments pending.
+- **SD-004 (held for V3)**: Action objects as hippocampal map backbone — E2 produces compressed action-object representations that HippocampalModule maps over instead of raw state space, enabling much longer planning horizons. See `docs/architecture/design_decisions.md`.
+
+## Experiment Status
+
+13 experiments run (EXQ-014–EXQ-026) against real ree_core, covering MECH-056, MECH-057, MECH-058, MECH-059, MECH-060, MECH-061, ARC-007, ARC-018, MECH-033, Q-007.
+Results in `evidence/experiments/`. Queue in `experiment_queue.json`.
 
 ## Cross-Repo Roundtrip
 

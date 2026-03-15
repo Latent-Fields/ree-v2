@@ -1,0 +1,111 @@
+{
+  "experiment": "valence_regime_correlation",
+  "claim": "Q-007",
+  "evb_id": "EVB-0006",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-08T10:26:17.045764+00:00",
+  "config": {
+    "num_episodes": 200,
+    "max_steps": 100,
+    "seeds": [
+      7,
+      42,
+      99
+    ],
+    "grid_size": 10,
+    "num_hazards": 4,
+    "environment": "CausalGridWorld",
+    "e1_lr": 0.0001,
+    "policy_lr": 0.001,
+    "resource_rich_count": 10,
+    "resource_sparse_count": 1,
+    "corr_threshold": 0.1,
+    "precision_delta": 0.1
+  },
+  "verdict": "FAIL",
+  "partial_support": false,
+  "aggregate": {
+    "rich_mean_health": 0.7328,
+    "sparse_mean_health": 0.7162,
+    "rich_mean_precision": 0.5,
+    "sparse_mean_precision": 0.5,
+    "rich_valence_precision_corr": 0.0,
+    "criterion_1_corr_met": false,
+    "criterion_2_precision_delta_met": false,
+    "criteria_met": 0
+  },
+  "per_run": [
+    {
+      "condition": "RESOURCE_RICH",
+      "seed": 7,
+      "num_resources": 10,
+      "mean_health": 0.7192,
+      "last_quarter_health": 0.6925,
+      "mean_precision": 0.5,
+      "last_quarter_precision": 0.5,
+      "valence_precision_corr": 0.0,
+      "last_quarter_harm": 1.288,
+      "episode_count": 200
+    },
+    {
+      "condition": "RESOURCE_SPARSE",
+      "seed": 7,
+      "num_resources": 1,
+      "mean_health": 0.7177,
+      "last_quarter_health": 0.7397,
+      "mean_precision": 0.5,
+      "last_quarter_precision": 0.5,
+      "valence_precision_corr": 0.0,
+      "last_quarter_harm": 1.222,
+      "episode_count": 200
+    },
+    {
+      "condition": "RESOURCE_RICH",
+      "seed": 42,
+      "num_resources": 10,
+      "mean_health": 0.7258,
+      "last_quarter_health": 0.7117,
+      "mean_precision": 0.5,
+      "last_quarter_precision": 0.5,
+      "valence_precision_corr": 0.0,
+      "last_quarter_harm": 1.202,
+      "episode_count": 200
+    },
+    {
+      "condition": "RESOURCE_SPARSE",
+      "seed": 42,
+      "num_resources": 1,
+      "mean_health": 0.7089,
+      "last_quarter_health": 0.7182,
+      "mean_precision": 0.5,
+      "last_quarter_precision": 0.5,
+      "valence_precision_corr": 0.0,
+      "last_quarter_harm": 1.228,
+      "episode_count": 200
+    },
+    {
+      "condition": "RESOURCE_RICH",
+      "seed": 99,
+      "num_resources": 10,
+      "mean_health": 0.7533,
+      "last_quarter_health": 0.7745,
+      "mean_precision": 0.5,
+      "last_quarter_precision": 0.5,
+      "valence_precision_corr": 0.0,
+      "last_quarter_harm": 1.182,
+      "episode_count": 200
+    },
+    {
+      "condition": "RESOURCE_SPARSE",
+      "seed": 99,
+      "num_resources": 1,
+      "mean_health": 0.7221,
+      "last_quarter_health": 0.7605,
+      "mean_precision": 0.5,
+      "last_quarter_precision": 0.5,
+      "valence_precision_corr": 0.0,
+      "last_quarter_harm": 1.2,
+      "episode_count": 200
+    }
+  ]
+}

@@ -205,7 +205,7 @@ def run_experiment(item: dict, status: dict, status_path: Path, calibration: dic
     last_write = time.monotonic()
     update_status_current()
 
-    result_info = {"result": "UNKNOWN", "result_summary": "", "completed_at": "", "output_file": ""}
+    result_info = {"result": "UNKNOWN", "result_summary": "", "started_at": started_at_utc, "completed_at": "", "output_file": ""}
 
     try:
         proc = subprocess.Popen(
@@ -428,6 +428,7 @@ def main():
                 "description": item.get("description", ""),
                 "result": result["result"],
                 "result_summary": result["result_summary"],
+                "started_at": result.get("started_at", ""),
                 "completed_at": result["completed_at"],
                 "output_file": result.get("output_file", ""),
             }

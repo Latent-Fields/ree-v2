@@ -1,10 +1,10 @@
 {
   "schema_version": "v1",
   "calibration": {
-    "ms_per_episode_condition": 750,
+    "ms_per_episode_condition": 6000,
     "hardware": "Apple M2 Air 8 GB",
-    "calibrated_at": "2026-03-01",
-    "calibration_note": "Estimated from V1 calibration: 200 eps x 3 seeds x 2 conditions ~ 15 min on M2 Air 8GB. CausalGridWorld slightly heavier than GridWorld due to contamination tracking; estimate held conservative."
+    "calibrated_at": "2026-03-15",
+    "calibration_note": "Recalibrated 2026-03-15 from actual V2 run times: EXQ-015 108min, EXQ-016 163min, EXQ-017 124min, EXQ-018 15min, EXQ-019 183min. Actual ms/ep-cond ~5400-6000 (8x V1 estimate). V2 substrate (HippocampalModule + real E2 + CausalGridWorld) is significantly heavier than V1."
   },
   "items": [
     {

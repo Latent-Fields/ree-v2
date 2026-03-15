@@ -28,7 +28,7 @@ The agent implements the canonical REE loop:
 8. OFFLINE  - Periodically perform offline integration (sleep)
 """
 
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Tuple
 from dataclasses import dataclass
 
 import torch
@@ -115,6 +115,7 @@ class REEAgent(nn.Module):
         self._current_latent: Optional[LatentState] = None
         self._step_count = 0
         self._experience_buffer: List[torch.Tensor] = []
+        self._e2_transition_buffer: List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = []
         self._harm_this_episode = 0.0
 
         self.device = torch.device(config.device)
@@ -319,6 +320,63 @@ class REEAgent(nn.Module):
         self.e1._hidden_state = saved_hidden
 
         return loss
+
+    def record_transition(
+        self,
+        z_t: torch.Tensor,
+        action: torch.Tensor,
+        z_t1: torch.Tensor,
+    ) -> None:
+        """
+        Record a (z_t, action, z_{t+1}) transition for E2 training.
+
+        E2 is a motor-sensory forward model: f(z_t, a_t) → z_{t+1}.
+        The target z_{t+1} is the actual latent state after taking action
+        a_t and observing the sensory consequences — this is the correct
+        motor-sensory error signal, categorically distinct from E1's
+        sensory-only prediction error.
+
+        Args:
+            z_t:    Latent state before action [1, latent_dim], detached
+            action: Action taken [1, action_dim], detached
+            z_t1:   Latent state after action [1, latent_dim], detached
+        """
+        self._e2_transition_buffer.append((z_t, action, z_t1))
+        if len(self._e2_transition_buffer) > 1000:
+            self._e2_transition_buffer = self._e2_transition_buffer[-1000:]
+
+    def compute_e2_loss(self, batch_size: int = 16) -> torch.Tensor:
+        """
+        Return a differentiable E2 motor-sensory forward-model loss.
+
+        Samples transitions from the E2 buffer, runs E2.predict_next_state,
+        and returns the MSE loss against actual next states.  Gradients flow
+        through E2's transition network and action_encoder.
+
+        The error signal is motor-sensory: the target is the actual sensory
+        consequence of taking the action, not a purely sensory prediction.
+        This is categorically distinct from E1's sensory-to-sensory loss.
+
+        Returns:
+            Scalar loss tensor with grad_fn.  Returns a near-zero differentiable
+            loss if the buffer is too small to sample from.
+        """
+        zero_loss = next(self.e2.parameters()).sum() * 0.0
+
+        if len(self._e2_transition_buffer) < 2:
+            return zero_loss
+
+        n = min(batch_size, len(self._e2_transition_buffer))
+        indices = torch.randperm(len(self._e2_transition_buffer))[:n].tolist()
+        batch = [self._e2_transition_buffer[i] for i in indices]
+        z_t_list, actions_list, z_t1_list = zip(*batch)
+
+        z_t_batch = torch.cat(z_t_list, dim=0)        # [n, latent_dim]
+        actions_batch = torch.cat(actions_list, dim=0) # [n, action_dim]
+        z_t1_batch = torch.cat(z_t1_list, dim=0)      # [n, latent_dim]
+
+        z_t1_pred = self.e2.predict_next_state(z_t_batch, actions_batch)
+        return F.mse_loss(z_t1_pred, z_t1_batch)
 
     def act_with_log_prob(
         self,

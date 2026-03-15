@@ -70,6 +70,7 @@ DEFAULT_NUM_HAZARDS = 4
 MAX_GRAD_NORM = 1.0
 E1_LR = 1e-4
 POLICY_LR = 1e-3
+E2_LR = 1e-3
 
 # ── Pass thresholds ───────────────────────────────────────────────────────────
 
@@ -81,7 +82,7 @@ HARM_FACTOR: float = 0.95    # criterion 2: MAPPED last-Q harm < FIXED * factor
 
 def make_optimizers(
     agent: REEAgent,
-) -> Tuple[torch.optim.Optimizer, torch.optim.Optimizer]:
+) -> Tuple[torch.optim.Optimizer, torch.optim.Optimizer, torch.optim.Optimizer]:
     e1_params = (
         list(agent.e1.parameters())
         + list(agent.latent_stack.parameters())
@@ -90,7 +91,8 @@ def make_optimizers(
     policy_params = list(agent.e3.parameters())
     e1_opt = torch.optim.Adam(e1_params, lr=E1_LR)
     policy_opt = torch.optim.Adam(policy_params, lr=POLICY_LR)
-    return e1_opt, policy_opt
+    e2_opt = torch.optim.Adam(list(agent.e2.parameters()), lr=E2_LR)
+    return e1_opt, policy_opt, e2_opt
 
 
 # ── Episode runner ────────────────────────────────────────────────────────────
@@ -100,6 +102,7 @@ def run_episode(
     env: CausalGridWorld,
     e1_opt: torch.optim.Optimizer,
     policy_opt: torch.optim.Optimizer,
+    e2_opt: torch.optim.Optimizer,
     condition: str,
     max_steps: int,
 ) -> Dict[str, Any]:
@@ -108,6 +111,7 @@ def run_episode(
 
     VIABILITY_MAPPED: E1 world-model updates every step — builds viability map.
     VIABILITY_FIXED:  E1 frozen — policy gradient runs but world model static.
+    E2 trains in both conditions.
     """
     agent.reset()
     obs = env.reset()
@@ -116,6 +120,9 @@ def run_episode(
     total_harm = 0.0
     e1_losses: List[float] = []
     steps = 0
+
+    prev_latent_z: Optional[torch.Tensor] = None
+    prev_action_tensor: Optional[torch.Tensor] = None
 
     for _ in range(max_steps):
         obs_tensor = torch.FloatTensor(obs)
@@ -127,11 +134,17 @@ def run_episode(
             agent.update_latent(encoded)
             candidates = agent.generate_trajectories(agent._current_latent)
 
+        # Capture z_t; record E2 transition (z_{t-1}, a_{t-1}, z_t)
+        z_t = agent._current_latent.z_gamma.detach().clone()
+        if prev_latent_z is not None and prev_action_tensor is not None:
+            agent.record_transition(prev_latent_z, prev_action_tensor, z_t)
+
         result = agent.e3.select(candidates)
         if result.log_prob is not None:
             log_probs.append(result.log_prob)
 
-        action_idx = result.selected_action.argmax(dim=-1).item()
+        action_tensor = result.selected_action.detach().clone()
+        action_idx = action_tensor.argmax(dim=-1).item()
         next_obs, harm, done, _info = env.step(action_idx)
 
         actual_harm = abs(harm) if harm < 0 else 0.0
@@ -153,7 +166,20 @@ def run_episode(
             e1_opt.step()
         # VIABILITY_FIXED: skip e1_opt.step() — world model stays frozen
 
+        # ── E2 update (both conditions) ──
+        e2_loss = agent.compute_e2_loss()
+        if e2_loss.requires_grad:
+            e2_opt.zero_grad()
+            e2_loss.backward()
+            torch.nn.utils.clip_grad_norm_(
+                [p for grp in e2_opt.param_groups for p in grp["params"]],
+                MAX_GRAD_NORM,
+            )
+            e2_opt.step()
+
         e1_losses.append(e1_loss_val)
+        prev_latent_z = z_t
+        prev_action_tensor = action_tensor
         obs = next_obs
         steps += 1
         if done:
@@ -198,13 +224,13 @@ def run_condition(
     env = CausalGridWorld(size=grid_size, num_hazards=num_hazards)
     config = REEConfig.from_dims(env.observation_dim, env.action_dim)
     agent = REEAgent(config=config)
-    e1_opt, policy_opt = make_optimizers(agent)
+    e1_opt, policy_opt, e2_opt = make_optimizers(agent)
 
     ep_harms: List[float] = []
     ep_e1_losses: List[float] = []
 
     for ep in range(num_episodes):
-        metrics = run_episode(agent, env, e1_opt, policy_opt, condition, max_steps)
+        metrics = run_episode(agent, env, e1_opt, policy_opt, e2_opt, condition, max_steps)
         ep_harms.append(metrics["total_harm"])
         ep_e1_losses.append(metrics["mean_e1_loss"])
 

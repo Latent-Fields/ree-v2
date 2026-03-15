@@ -81,6 +81,7 @@ DEFAULT_GRID_SIZE = 10
 MAX_GRAD_NORM = 1.0
 E1_LR = 1e-4
 POLICY_LR = 1e-3
+E2_LR = 1e-3
 
 # Condition parameters: num_hazards controls density of agent-caused events
 CONDITION_HAZARDS: Dict[str, int] = {
@@ -98,7 +99,7 @@ SLOPE_MARGIN: float = 0.05  # criterion 2: HIGH slope > LOW slope + margin
 
 def make_optimizers(
     agent: REEAgent,
-) -> Tuple[torch.optim.Optimizer, torch.optim.Optimizer]:
+) -> Tuple[torch.optim.Optimizer, torch.optim.Optimizer, torch.optim.Optimizer]:
     e1_params = (
         list(agent.e1.parameters())
         + list(agent.latent_stack.parameters())
@@ -107,7 +108,8 @@ def make_optimizers(
     policy_params = list(agent.e3.parameters())
     e1_opt = torch.optim.Adam(e1_params, lr=E1_LR)
     policy_opt = torch.optim.Adam(policy_params, lr=POLICY_LR)
-    return e1_opt, policy_opt
+    e2_opt = torch.optim.Adam(list(agent.e2.parameters()), lr=E2_LR)
+    return e1_opt, policy_opt, e2_opt
 
 
 # ── Episode runner ────────────────────────────────────────────────────────────
@@ -117,6 +119,7 @@ def run_episode(
     env: CausalGridWorld,
     e1_opt: torch.optim.Optimizer,
     policy_opt: torch.optim.Optimizer,
+    e2_opt: torch.optim.Optimizer,
     max_steps: int,
 ) -> Dict[str, Any]:
     """
@@ -140,6 +143,9 @@ def run_episode(
     agent_caused_precisions: List[float] = []
     baseline_precisions: List[float] = []
 
+    prev_latent_z: Optional[torch.Tensor] = None
+    prev_action_tensor: Optional[torch.Tensor] = None
+
     for _ in range(max_steps):
         obs_tensor = torch.FloatTensor(obs)
         if obs_tensor.dim() == 1:
@@ -149,6 +155,11 @@ def run_episode(
             encoded = agent.sense(obs_tensor)
             agent.update_latent(encoded)
             candidates = agent.generate_trajectories(agent._current_latent)
+
+        # Capture z_t; record E2 transition (z_{t-1}, a_{t-1}, z_t)
+        z_t = agent._current_latent.z_gamma.detach().clone()
+        if prev_latent_z is not None and prev_action_tensor is not None:
+            agent.record_transition(prev_latent_z, prev_action_tensor, z_t)
 
         # Record E3 precision at action-selection time (action-doing state)
         current_prec = float(
@@ -161,7 +172,8 @@ def run_episode(
         if result.log_prob is not None:
             log_probs.append(result.log_prob)
 
-        action_idx = result.selected_action.argmax(dim=-1).item()
+        action_tensor = result.selected_action.detach().clone()
+        action_idx = action_tensor.argmax(dim=-1).item()
         next_obs, harm, done, info = env.step(action_idx)
 
         actual_harm = abs(harm) if harm < 0 else 0.0
@@ -187,6 +199,19 @@ def run_episode(
             )
             e1_opt.step()
 
+        # ── E2 update ──
+        e2_loss = agent.compute_e2_loss()
+        if e2_loss.requires_grad:
+            e2_opt.zero_grad()
+            e2_loss.backward()
+            torch.nn.utils.clip_grad_norm_(
+                [p for grp in e2_opt.param_groups for p in grp["params"]],
+                MAX_GRAD_NORM,
+            )
+            e2_opt.step()
+
+        prev_latent_z = z_t
+        prev_action_tensor = action_tensor
         obs = next_obs
         steps += 1
         if done:
@@ -240,13 +265,13 @@ def run_condition(
     env = CausalGridWorld(size=grid_size, num_hazards=num_hazards)
     config = REEConfig.from_dims(env.observation_dim, env.action_dim)
     agent = REEAgent(config=config)
-    e1_opt, policy_opt = make_optimizers(agent)
+    e1_opt, policy_opt, e2_opt = make_optimizers(agent)
 
     ep_harms: List[float] = []
     ep_lifts: List[float] = []
 
     for ep in range(num_episodes):
-        metrics = run_episode(agent, env, e1_opt, policy_opt, max_steps)
+        metrics = run_episode(agent, env, e1_opt, policy_opt, e2_opt, max_steps)
         ep_harms.append(metrics["total_harm"])
         ep_lifts.append(metrics["action_precision_lift"])
 

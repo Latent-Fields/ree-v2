@@ -1,0 +1,84 @@
+{
+  "experiment": "kernel_chaining_interface",
+  "claim": "MECH-033",
+  "evb_id": "EVB-0016",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-08T11:13:37.109926+00:00",
+  "config": {
+    "num_episodes": 200,
+    "max_steps": 100,
+    "seeds": [
+      7,
+      42,
+      99
+    ],
+    "grid_size": 10,
+    "num_hazards": 4,
+    "environment": "CausalGridWorld",
+    "e1_lr": 0.0001,
+    "policy_lr": 0.001,
+    "harm_factor": 0.9,
+    "slope_margin": 0.05
+  },
+  "verdict": "FAIL",
+  "partial_support": false,
+  "aggregate": {
+    "with_chain_harm_last_quarter": 1.2053,
+    "no_chain_harm_last_quarter": 1.242,
+    "with_chain_slope": 0.0194,
+    "no_chain_slope": 0.0194,
+    "criterion_1_harm_met": false,
+    "criterion_2_slope_met": false,
+    "criteria_met": 0
+  },
+  "per_run": [
+    {
+      "condition": "WITH_CHAIN",
+      "seed": 7,
+      "first_quarter_harm": 1.254,
+      "last_quarter_harm": 1.22,
+      "harm_reduction_slope": 0.0271,
+      "episode_count": 200
+    },
+    {
+      "condition": "NO_CHAIN",
+      "seed": 7,
+      "first_quarter_harm": 1.258,
+      "last_quarter_harm": 1.236,
+      "harm_reduction_slope": 0.0175,
+      "episode_count": 200
+    },
+    {
+      "condition": "WITH_CHAIN",
+      "seed": 42,
+      "first_quarter_harm": 1.214,
+      "last_quarter_harm": 1.232,
+      "harm_reduction_slope": -0.0148,
+      "episode_count": 200
+    },
+    {
+      "condition": "NO_CHAIN",
+      "seed": 42,
+      "first_quarter_harm": 1.284,
+      "last_quarter_harm": 1.25,
+      "harm_reduction_slope": 0.0265,
+      "episode_count": 200
+    },
+    {
+      "condition": "WITH_CHAIN",
+      "seed": 99,
+      "first_quarter_harm": 1.22,
+      "last_quarter_harm": 1.164,
+      "harm_reduction_slope": 0.0459,
+      "episode_count": 200
+    },
+    {
+      "condition": "NO_CHAIN",
+      "seed": 99,
+      "first_quarter_harm": 1.258,
+      "last_quarter_harm": 1.24,
+      "harm_reduction_slope": 0.0143,
+      "episode_count": 200
+    }
+  ]
+}
