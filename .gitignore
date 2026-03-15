@@ -9,3 +9,4 @@ htmlcov/
 .claude/
 *.egg-info/
 *.log
+runner.pid
