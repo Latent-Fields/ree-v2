@@ -10,3 +10,4 @@ htmlcov/
 *.egg-info/
 *.log
 runner.pid
+*.backup
