@@ -1,0 +1,84 @@
+{
+  "experiment": "kernel_chaining_interface",
+  "claim": "MECH-033",
+  "evb_id": "EVB-0016",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-15T16:59:27.955457+00:00",
+  "config": {
+    "num_episodes": 200,
+    "max_steps": 100,
+    "seeds": [
+      7,
+      42,
+      99
+    ],
+    "grid_size": 10,
+    "num_hazards": 4,
+    "environment": "CausalGridWorld",
+    "e1_lr": 0.0001,
+    "policy_lr": 0.001,
+    "harm_factor": 0.9,
+    "slope_margin": 0.05
+  },
+  "verdict": "FAIL",
+  "partial_support": false,
+  "aggregate": {
+    "with_chain_harm_last_quarter": 1.23,
+    "no_chain_harm_last_quarter": 1.2527,
+    "with_chain_slope": 0.0027,
+    "no_chain_slope": 0.0126,
+    "criterion_1_harm_met": false,
+    "criterion_2_slope_met": false,
+    "criteria_met": 0
+  },
+  "per_run": [
+    {
+      "condition": "WITH_CHAIN",
+      "seed": 7,
+      "first_quarter_harm": 1.202,
+      "last_quarter_harm": 1.238,
+      "harm_reduction_slope": -0.03,
+      "episode_count": 200
+    },
+    {
+      "condition": "NO_CHAIN",
+      "seed": 7,
+      "first_quarter_harm": 1.302,
+      "last_quarter_harm": 1.278,
+      "harm_reduction_slope": 0.0184,
+      "episode_count": 200
+    },
+    {
+      "condition": "WITH_CHAIN",
+      "seed": 42,
+      "first_quarter_harm": 1.238,
+      "last_quarter_harm": 1.232,
+      "harm_reduction_slope": 0.0048,
+      "episode_count": 200
+    },
+    {
+      "condition": "NO_CHAIN",
+      "seed": 42,
+      "first_quarter_harm": 1.262,
+      "last_quarter_harm": 1.26,
+      "harm_reduction_slope": 0.0016,
+      "episode_count": 200
+    },
+    {
+      "condition": "WITH_CHAIN",
+      "seed": 99,
+      "first_quarter_harm": 1.262,
+      "last_quarter_harm": 1.22,
+      "harm_reduction_slope": 0.0333,
+      "episode_count": 200
+    },
+    {
+      "condition": "NO_CHAIN",
+      "seed": 99,
+      "first_quarter_harm": 1.242,
+      "last_quarter_harm": 1.22,
+      "harm_reduction_slope": 0.0177,
+      "episode_count": 200
+    }
+  ]
+}

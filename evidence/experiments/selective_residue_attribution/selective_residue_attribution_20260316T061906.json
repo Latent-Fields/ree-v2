@@ -1,0 +1,158 @@
+{
+  "experiment": "selective_residue_attribution",
+  "claim": "MECH-072",
+  "evb_id": "EVB-0047",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-15T20:57:15.002247+00:00",
+  "config": {
+    "num_episodes": 300,
+    "max_steps": 100,
+    "seeds": [
+      7,
+      42,
+      99
+    ],
+    "grid_size": 10,
+    "num_hazards": 4,
+    "num_resources": 5,
+    "environment": "CausalGridWorld",
+    "attribution_threshold": 0.3,
+    "harm_regression_tolerance": 1.05,
+    "final_quartile_fraction": 0.25,
+    "e1_lr": 0.0001,
+    "e2_lr": 0.001,
+    "policy_lr": 0.001
+  },
+  "verdict": "FAIL",
+  "result_summary": "NAIVE false_attr: 0.2618 | FORE false_attr: 0.2618 | NAIVE harm: 1.2396 | FORE harm: 1.2396 | MECH-072 verdict: FAIL",
+  "criteria_met": 1,
+  "aggregate": {
+    "naive_mean_final_harm": 1.2396,
+    "foreseeable_mean_final_harm": 1.2396,
+    "oracle_mean_final_harm": 1.2289,
+    "naive_mean_false_attribution_rate": 0.2618,
+    "foreseeable_mean_false_attribution_rate": 0.2618,
+    "oracle_mean_false_attribution_rate": 0.0,
+    "naive_mean_true_attribution_rate": 0.7382,
+    "foreseeable_mean_true_attribution_rate": 0.7382,
+    "oracle_mean_true_attribution_rate": 0.7334,
+    "criterion_1_foreseeable_reduces_false_attribution": false,
+    "criterion_2_foreseeable_no_harm_regression": true
+  },
+  "per_condition": {
+    "NAIVE": [
+      {
+        "seed": 7,
+        "condition": "NAIVE",
+        "final_harm": 1.22,
+        "false_attribution_rate": 0.2446,
+        "true_attribution_rate": 0.7554,
+        "total_harm_steps": 875,
+        "total_residue_accumulated": 875,
+        "total_false_attribution": 214,
+        "total_true_attribution": 661,
+        "total_missed_attribution": 0
+      },
+      {
+        "seed": 42,
+        "condition": "NAIVE",
+        "final_harm": 1.2427,
+        "false_attribution_rate": 0.2614,
+        "true_attribution_rate": 0.7386,
+        "total_harm_steps": 880,
+        "total_residue_accumulated": 880,
+        "total_false_attribution": 230,
+        "total_true_attribution": 650,
+        "total_missed_attribution": 0
+      },
+      {
+        "seed": 99,
+        "condition": "NAIVE",
+        "final_harm": 1.256,
+        "false_attribution_rate": 0.2795,
+        "true_attribution_rate": 0.7205,
+        "total_harm_steps": 873,
+        "total_residue_accumulated": 873,
+        "total_false_attribution": 244,
+        "total_true_attribution": 629,
+        "total_missed_attribution": 0
+      }
+    ],
+    "FORESEEABLE": [
+      {
+        "seed": 7,
+        "condition": "FORESEEABLE",
+        "final_harm": 1.22,
+        "false_attribution_rate": 0.2446,
+        "true_attribution_rate": 0.7554,
+        "total_harm_steps": 875,
+        "total_residue_accumulated": 875,
+        "total_false_attribution": 214,
+        "total_true_attribution": 661,
+        "total_missed_attribution": 0
+      },
+      {
+        "seed": 42,
+        "condition": "FORESEEABLE",
+        "final_harm": 1.2427,
+        "false_attribution_rate": 0.2614,
+        "true_attribution_rate": 0.7386,
+        "total_harm_steps": 880,
+        "total_residue_accumulated": 880,
+        "total_false_attribution": 230,
+        "total_true_attribution": 650,
+        "total_missed_attribution": 0
+      },
+      {
+        "seed": 99,
+        "condition": "FORESEEABLE",
+        "final_harm": 1.256,
+        "false_attribution_rate": 0.2795,
+        "true_attribution_rate": 0.7205,
+        "total_harm_steps": 873,
+        "total_residue_accumulated": 873,
+        "total_false_attribution": 244,
+        "total_true_attribution": 629,
+        "total_missed_attribution": 0
+      }
+    ],
+    "ORACLE": [
+      {
+        "seed": 7,
+        "condition": "ORACLE",
+        "final_harm": 1.216,
+        "false_attribution_rate": 0.0,
+        "true_attribution_rate": 0.6938,
+        "total_harm_steps": 859,
+        "total_residue_accumulated": 596,
+        "total_false_attribution": 0,
+        "total_true_attribution": 596,
+        "total_missed_attribution": 0
+      },
+      {
+        "seed": 42,
+        "condition": "ORACLE",
+        "final_harm": 1.228,
+        "false_attribution_rate": 0.0,
+        "true_attribution_rate": 0.7605,
+        "total_harm_steps": 881,
+        "total_residue_accumulated": 670,
+        "total_false_attribution": 0,
+        "total_true_attribution": 670,
+        "total_missed_attribution": 0
+      },
+      {
+        "seed": 99,
+        "condition": "ORACLE",
+        "final_harm": 1.2427,
+        "false_attribution_rate": 0.0,
+        "true_attribution_rate": 0.746,
+        "total_harm_steps": 886,
+        "total_residue_accumulated": 661,
+        "total_false_attribution": 0,
+        "total_true_attribution": 661,
+        "total_missed_attribution": 0
+      }
+    ]
+  }
+}

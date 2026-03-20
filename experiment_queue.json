@@ -218,69 +218,6 @@
       "status_reason": "Script written 2026-03-07; dispatched EXP-0017/MECH-033"
     },
     {
-      "queue_id": "EXQ-024",
-      "backlog_id": "EVB-0009",
-      "claim_id": "ARC-007",
-      "title": "Path Memory Ablation",
-      "description": "Tests ARC-007: hippocampus.path_memory. Asserts that access to prior trajectory information (contamination_view + footprint_density in observation) is load-bearing for contamination avoidance. PATH_MEMORY (full obs) vs PATH_ABLATED (path-memory slice zeroed). Pass requires: MEMORY agent_caused_harm < ABLATED * 0.95 AND MEMORY total_harm <= ABLATED * 1.05.",
-      "script": "experiments/path_memory_ablation.py",
-      "args": [
-        "--episodes",
-        "200",
-        "--seeds",
-        "7",
-        "42",
-        "99"
-      ],
-      "seeds": 3,
-      "conditions": 2,
-      "episodes_per_run": 200,
-      "status": "pending",
-      "status_reason": "Script written 2026-03-07; dispatched EXP-0018/ARC-007"
-    },
-    {
-      "queue_id": "EXQ-025",
-      "backlog_id": "EVB-0024",
-      "claim_id": "ARC-016",
-      "title": "Precision Regime Probe",
-      "description": "Tests ARC-016: cognitive_modes.control_plane_regimes. Asserts that distinct E3 precision regimes produce distinct behavioral signatures. HIGH_REGIME (precision_max=2.0, min=1.0) vs LOW_REGIME (precision_max=0.5, min=0.1). Pass requires: |HIGH-LOW| mean precision > 0.30 AND (HIGH commit_rate < LOW - 0.05 OR HIGH last-Q harm < LOW * 0.95).",
-      "script": "experiments/precision_regime_probe.py",
-      "args": [
-        "--episodes",
-        "200",
-        "--seeds",
-        "7",
-        "42",
-        "99"
-      ],
-      "seeds": 3,
-      "conditions": 2,
-      "episodes_per_run": 200,
-      "status": "pending",
-      "status_reason": "Script written 2026-03-07; dispatched EXP-0021/ARC-016"
-    },
-    {
-      "queue_id": "EXQ-026",
-      "backlog_id": "EVB-0025",
-      "claim_id": "MECH-025",
-      "title": "Action-Doing Mode Probe",
-      "description": "Tests MECH-025: cognitive_modes.action_doing_mode. Asserts that the system enters a distinct action-doing mode when executing intentions with causal consequences, measurable as an E3 precision lift on agent_caused_hazard steps vs baseline. HIGH_CAUSAL (num_hazards=8) vs LOW_CAUSAL (num_hazards=1). Pass requires: HIGH precision lift > LOW lift + 0.05 AND HIGH harm_reduction_slope > LOW + 0.05.",
-      "script": "experiments/action_doing_mode_probe.py",
-      "args": [
-        "--episodes",
-        "200",
-        "--seeds",
-        "7",
-        "42",
-        "99"
-      ],
-      "seeds": 3,
-      "conditions": 2,
-      "episodes_per_run": 200,
-      "status": "pending",
-      "status_reason": "Script written 2026-03-07; dispatched EXP-0022/MECH-025"
-    },
-    {
       "queue_id": "EXQ-027",
       "backlog_id": "EVB-0046",
       "claim_id": "MECH-071",
@@ -358,6 +295,69 @@
       "depends_on": [
         "EXQ-027"
       ]
+    },
+    {
+      "queue_id": "EXQ-024",
+      "backlog_id": "EVB-0009",
+      "claim_id": "ARC-007",
+      "title": "Path Memory Ablation",
+      "description": "Tests ARC-007: hippocampus.path_memory. Asserts that access to prior trajectory information (contamination_view + footprint_density in observation) is load-bearing for contamination avoidance. PATH_MEMORY (full obs) vs PATH_ABLATED (path-memory slice zeroed). Pass requires: MEMORY agent_caused_harm < ABLATED * 0.95 AND MEMORY total_harm <= ABLATED * 1.05.",
+      "script": "experiments/path_memory_ablation.py",
+      "args": [
+        "--episodes",
+        "200",
+        "--seeds",
+        "7",
+        "42",
+        "99"
+      ],
+      "seeds": 3,
+      "conditions": 2,
+      "episodes_per_run": 200,
+      "status": "pending",
+      "status_reason": "Script written 2026-03-07; dispatched EXP-0018/ARC-007"
+    },
+    {
+      "queue_id": "EXQ-025",
+      "backlog_id": "EVB-0024",
+      "claim_id": "ARC-016",
+      "title": "Precision Regime Probe",
+      "description": "Tests ARC-016: cognitive_modes.control_plane_regimes. Asserts that distinct E3 precision regimes produce distinct behavioral signatures. HIGH_REGIME (precision_max=2.0, min=1.0) vs LOW_REGIME (precision_max=0.5, min=0.1). Pass requires: |HIGH-LOW| mean precision > 0.30 AND (HIGH commit_rate < LOW - 0.05 OR HIGH last-Q harm < LOW * 0.95).",
+      "script": "experiments/precision_regime_probe.py",
+      "args": [
+        "--episodes",
+        "200",
+        "--seeds",
+        "7",
+        "42",
+        "99"
+      ],
+      "seeds": 3,
+      "conditions": 2,
+      "episodes_per_run": 200,
+      "status": "pending",
+      "status_reason": "Script written 2026-03-07; dispatched EXP-0021/ARC-016"
+    },
+    {
+      "queue_id": "EXQ-026",
+      "backlog_id": "EVB-0025",
+      "claim_id": "MECH-025",
+      "title": "Action-Doing Mode Probe",
+      "description": "Tests MECH-025: cognitive_modes.action_doing_mode. Asserts that the system enters a distinct action-doing mode when executing intentions with causal consequences, measurable as an E3 precision lift on agent_caused_hazard steps vs baseline. HIGH_CAUSAL (num_hazards=8) vs LOW_CAUSAL (num_hazards=1). Pass requires: HIGH precision lift > LOW lift + 0.05 AND HIGH harm_reduction_slope > LOW + 0.05.",
+      "script": "experiments/action_doing_mode_probe.py",
+      "args": [
+        "--episodes",
+        "200",
+        "--seeds",
+        "7",
+        "42",
+        "99"
+      ],
+      "seeds": 3,
+      "conditions": 2,
+      "episodes_per_run": 200,
+      "status": "pending",
+      "status_reason": "Script written 2026-03-07; dispatched EXP-0022/MECH-025"
     }
   ]
 }

@@ -1,0 +1,103 @@
+{
+  "experiment": "causal_attribution_calibration",
+  "claim": "MECH-071",
+  "evb_id": "EVB-0046",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-15T18:37:57.097148+00:00",
+  "config": {
+    "num_warmup_episodes": 200,
+    "num_eval_episodes": 50,
+    "max_steps": 100,
+    "seeds": [
+      7,
+      42,
+      99
+    ],
+    "grid_size": 10,
+    "num_hazards": 4,
+    "num_resources": 5,
+    "environment": "CausalGridWorld",
+    "calibration_gap_threshold": 0.05,
+    "random_gap_abs_max": 0.1,
+    "e1_lr": 0.0001,
+    "e2_lr": 0.001,
+    "policy_lr": 0.001
+  },
+  "verdict": "FAIL",
+  "criteria_met": 2,
+  "aggregate": {
+    "trained_mean_calibration_gap": -0.0041,
+    "random_mean_calibration_gap": -0.0005,
+    "criterion_1_trained_gap_above_threshold": false,
+    "criterion_2_random_gap_below_max": true,
+    "criterion_3_both_types_observed": true
+  },
+  "per_condition": [
+    {
+      "condition": "TRAINED",
+      "mean_calibration_gap": -0.0041,
+      "per_seed": [
+        {
+          "seed": 7,
+          "mean_predicted_harm_agent_caused": 0.5065,
+          "mean_predicted_harm_env_caused": 0.5098,
+          "calibration_gap": -0.0033,
+          "n_agent_caused_events": 96,
+          "n_env_caused_events": 48,
+          "n_total_harm_events": 144
+        },
+        {
+          "seed": 42,
+          "mean_predicted_harm_agent_caused": 0.5157,
+          "mean_predicted_harm_env_caused": 0.5195,
+          "calibration_gap": -0.0037,
+          "n_agent_caused_events": 118,
+          "n_env_caused_events": 33,
+          "n_total_harm_events": 151
+        },
+        {
+          "seed": 99,
+          "mean_predicted_harm_agent_caused": 0.5059,
+          "mean_predicted_harm_env_caused": 0.5113,
+          "calibration_gap": -0.0054,
+          "n_agent_caused_events": 121,
+          "n_env_caused_events": 27,
+          "n_total_harm_events": 148
+        }
+      ]
+    },
+    {
+      "condition": "RANDOM",
+      "mean_calibration_gap": -0.0005,
+      "per_seed": [
+        {
+          "seed": 7,
+          "mean_predicted_harm_agent_caused": 0.5087,
+          "mean_predicted_harm_env_caused": 0.5087,
+          "calibration_gap": -0.0,
+          "n_agent_caused_events": 103,
+          "n_env_caused_events": 41,
+          "n_total_harm_events": 144
+        },
+        {
+          "seed": 42,
+          "mean_predicted_harm_agent_caused": 0.5192,
+          "mean_predicted_harm_env_caused": 0.5195,
+          "calibration_gap": -0.0003,
+          "n_agent_caused_events": 109,
+          "n_env_caused_events": 37,
+          "n_total_harm_events": 146
+        },
+        {
+          "seed": 99,
+          "mean_predicted_harm_agent_caused": 0.51,
+          "mean_predicted_harm_env_caused": 0.5112,
+          "calibration_gap": -0.0012,
+          "n_agent_caused_events": 94,
+          "n_env_caused_events": 48,
+          "n_total_harm_events": 142
+        }
+      ]
+    }
+  ]
+}

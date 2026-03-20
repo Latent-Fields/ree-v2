@@ -1,0 +1,118 @@
+{
+  "experiment": "path_memory_ablation",
+  "claim": "ARC-007",
+  "evb_id": "EVB-0009",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-16T06:19:08.594368+00:00",
+  "config": {
+    "num_episodes": 200,
+    "max_steps": 100,
+    "seeds": [
+      7,
+      42,
+      99
+    ],
+    "grid_size": 10,
+    "num_hazards": 4,
+    "environment": "CausalGridWorld",
+    "e1_lr": 0.0001,
+    "policy_lr": 0.001,
+    "path_memory_obs_slice": [
+      252,
+      278
+    ],
+    "agent_harm_factor": 0.95,
+    "total_harm_ceiling": 1.05
+  },
+  "verdict": "PASS",
+  "partial_support": false,
+  "aggregate": {
+    "memory_agent_harm_last_quarter": 0.8747,
+    "ablated_agent_harm_last_quarter": 0.9413,
+    "memory_total_harm_last_quarter": 1.228,
+    "ablated_total_harm_last_quarter": 1.2313,
+    "criterion_1_agent_harm_met": true,
+    "criterion_2_total_harm_met": true,
+    "criteria_met": 2
+  },
+  "per_run": [
+    {
+      "condition": "PATH_MEMORY",
+      "seed": 7,
+      "first_quarter_total_harm": 1.276,
+      "last_quarter_total_harm": 1.234,
+      "first_quarter_agent_harm": 0.896,
+      "last_quarter_agent_harm": 0.784,
+      "path_memory_slice": [
+        252,
+        278
+      ],
+      "episode_count": 200
+    },
+    {
+      "condition": "PATH_ABLATED",
+      "seed": 7,
+      "first_quarter_total_harm": 1.232,
+      "last_quarter_total_harm": 1.222,
+      "first_quarter_agent_harm": 0.872,
+      "last_quarter_agent_harm": 0.912,
+      "path_memory_slice": [
+        252,
+        278
+      ],
+      "episode_count": 200
+    },
+    {
+      "condition": "PATH_MEMORY",
+      "seed": 42,
+      "first_quarter_total_harm": 1.246,
+      "last_quarter_total_harm": 1.224,
+      "first_quarter_agent_harm": 0.856,
+      "last_quarter_agent_harm": 1.064,
+      "path_memory_slice": [
+        252,
+        278
+      ],
+      "episode_count": 200
+    },
+    {
+      "condition": "PATH_ABLATED",
+      "seed": 42,
+      "first_quarter_total_harm": 1.25,
+      "last_quarter_total_harm": 1.23,
+      "first_quarter_agent_harm": 0.88,
+      "last_quarter_agent_harm": 1.0,
+      "path_memory_slice": [
+        252,
+        278
+      ],
+      "episode_count": 200
+    },
+    {
+      "condition": "PATH_MEMORY",
+      "seed": 99,
+      "first_quarter_total_harm": 1.254,
+      "last_quarter_total_harm": 1.226,
+      "first_quarter_agent_harm": 0.904,
+      "last_quarter_agent_harm": 0.776,
+      "path_memory_slice": [
+        252,
+        278
+      ],
+      "episode_count": 200
+    },
+    {
+      "condition": "PATH_ABLATED",
+      "seed": 99,
+      "first_quarter_total_harm": 1.262,
+      "last_quarter_total_harm": 1.242,
+      "first_quarter_agent_harm": 0.712,
+      "last_quarter_agent_harm": 0.912,
+      "path_memory_slice": [
+        252,
+        278
+      ],
+      "episode_count": 200
+    }
+  ]
+}

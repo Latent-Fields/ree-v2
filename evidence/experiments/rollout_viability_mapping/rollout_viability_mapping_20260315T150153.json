@@ -1,0 +1,96 @@
+{
+  "experiment": "rollout_viability_mapping",
+  "claim": "ARC-018",
+  "evb_id": "EVB-0017",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-15T12:58:44.288398+00:00",
+  "config": {
+    "num_episodes": 200,
+    "max_steps": 100,
+    "seeds": [
+      7,
+      42,
+      99
+    ],
+    "grid_size": 10,
+    "num_hazards": 4,
+    "environment": "CausalGridWorld",
+    "e1_lr": 0.0001,
+    "policy_lr": 0.001,
+    "slope_margin": 0.05,
+    "harm_factor": 0.95
+  },
+  "verdict": "FAIL",
+  "partial_support": false,
+  "aggregate": {
+    "viability_mapped_harm_last_quarter": 1.254,
+    "viability_fixed_harm_last_quarter": 1.2313,
+    "viability_mapped_harm_slope": -0.0174,
+    "viability_fixed_harm_slope": 0.0089,
+    "criterion_1_slope_met": false,
+    "criterion_2_harm_met": false,
+    "criteria_met": 0
+  },
+  "per_run": [
+    {
+      "condition": "VIABILITY_MAPPED",
+      "seed": 7,
+      "first_quarter_harm": 1.232,
+      "last_quarter_harm": 1.234,
+      "harm_reduction_slope": -0.0016,
+      "mean_e1_loss": 0.000371,
+      "last_quarter_e1_loss": 0.000257,
+      "episode_count": 200
+    },
+    {
+      "condition": "VIABILITY_FIXED",
+      "seed": 7,
+      "first_quarter_harm": 1.236,
+      "last_quarter_harm": 1.24,
+      "harm_reduction_slope": -0.0032,
+      "mean_e1_loss": 0.012397,
+      "last_quarter_e1_loss": 0.012579,
+      "episode_count": 200
+    },
+    {
+      "condition": "VIABILITY_MAPPED",
+      "seed": 42,
+      "first_quarter_harm": 1.224,
+      "last_quarter_harm": 1.276,
+      "harm_reduction_slope": -0.0425,
+      "mean_e1_loss": 0.00024,
+      "last_quarter_e1_loss": 0.000156,
+      "episode_count": 200
+    },
+    {
+      "condition": "VIABILITY_FIXED",
+      "seed": 42,
+      "first_quarter_harm": 1.224,
+      "last_quarter_harm": 1.232,
+      "harm_reduction_slope": -0.0065,
+      "mean_e1_loss": 0.00861,
+      "last_quarter_e1_loss": 0.00847,
+      "episode_count": 200
+    },
+    {
+      "condition": "VIABILITY_MAPPED",
+      "seed": 99,
+      "first_quarter_harm": 1.242,
+      "last_quarter_harm": 1.252,
+      "harm_reduction_slope": -0.0081,
+      "mean_e1_loss": 0.000208,
+      "last_quarter_e1_loss": 0.00016,
+      "episode_count": 200
+    },
+    {
+      "condition": "VIABILITY_FIXED",
+      "seed": 99,
+      "first_quarter_harm": 1.268,
+      "last_quarter_harm": 1.222,
+      "harm_reduction_slope": 0.0363,
+      "mean_e1_loss": 0.00793,
+      "last_quarter_e1_loss": 0.007897,
+      "episode_count": 200
+    }
+  ]
+}

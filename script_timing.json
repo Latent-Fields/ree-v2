@@ -1,0 +1,7 @@
+{
+  "experiments/causal_attribution_calibration.py": 5571.9,
+  "experiments/selective_residue_attribution.py": 12486.6,
+  "experiments/path_memory_ablation.py": 5746.2,
+  "experiments/precision_regime_probe.py": 5690.6,
+  "experiments/action_doing_mode_probe.py": 4813.2
+}

@@ -1,0 +1,146 @@
+{
+  "experiment": "attribution_completion_gating",
+  "claim": "MECH-057",
+  "evb_id": "EVB-0047",
+  "substrate": "ree-v2",
+  "run_timestamp": "2026-03-15T09:49:33.165765+00:00",
+  "config": {
+    "num_episodes": 200,
+    "max_steps": 100,
+    "seeds": [
+      7,
+      42,
+      99
+    ],
+    "grid_size": 10,
+    "num_hazards": 4,
+    "environment": "CausalGridWorld",
+    "e1_lr": 0.0001,
+    "policy_lr": 0.001,
+    "agent_harm_reduction_factor": 0.95,
+    "total_harm_tolerance": 1.1
+  },
+  "verdict": "FAIL",
+  "partial_support": true,
+  "aggregate": {
+    "gated_agent_harm_last_quarter": 0.8427,
+    "free_agent_harm_last_quarter": 0.864,
+    "blind_agent_harm_last_quarter": 0.8187,
+    "gated_total_harm_last_quarter": 1.2527,
+    "free_total_harm_last_quarter": 1.244,
+    "criterion_1_gated_vs_free_met": false,
+    "criterion_2_gated_vs_blind_met": false,
+    "criterion_3_total_harm_parity_met": true,
+    "criteria_met": 1
+  },
+  "per_run": [
+    {
+      "condition": "COMPLETION_GATED",
+      "seed": 7,
+      "first_quarter_total_harm": 1.232,
+      "last_quarter_total_harm": 1.202,
+      "first_quarter_agent_harm": 0.952,
+      "last_quarter_agent_harm": 0.752,
+      "last_quarter_env_harm": 0.45,
+      "mean_agent_harm_fraction": 0.7054,
+      "last_quarter_agent_harm_fraction": 0.6095,
+      "episode_count": 200
+    },
+    {
+      "condition": "FREE_REPLAN",
+      "seed": 7,
+      "first_quarter_total_harm": 1.244,
+      "last_quarter_total_harm": 1.22,
+      "first_quarter_agent_harm": 0.944,
+      "last_quarter_agent_harm": 0.68,
+      "last_quarter_env_harm": 0.54,
+      "mean_agent_harm_fraction": 0.6715,
+      "last_quarter_agent_harm_fraction": 0.5427,
+      "episode_count": 200
+    },
+    {
+      "condition": "ATTRIBUTION_BLIND",
+      "seed": 7,
+      "first_quarter_total_harm": 1.258,
+      "last_quarter_total_harm": 1.244,
+      "first_quarter_agent_harm": 0.888,
+      "last_quarter_agent_harm": 0.784,
+      "last_quarter_env_harm": 0.46,
+      "mean_agent_harm_fraction": 0.687,
+      "last_quarter_agent_harm_fraction": 0.6219,
+      "episode_count": 200
+    },
+    {
+      "condition": "COMPLETION_GATED",
+      "seed": 42,
+      "first_quarter_total_harm": 1.234,
+      "last_quarter_total_harm": 1.258,
+      "first_quarter_agent_harm": 0.824,
+      "last_quarter_agent_harm": 0.848,
+      "last_quarter_env_harm": 0.41,
+      "mean_agent_harm_fraction": 0.7211,
+      "last_quarter_agent_harm_fraction": 0.6811,
+      "episode_count": 200
+    },
+    {
+      "condition": "FREE_REPLAN",
+      "seed": 42,
+      "first_quarter_total_harm": 1.252,
+      "last_quarter_total_harm": 1.236,
+      "first_quarter_agent_harm": 0.912,
+      "last_quarter_agent_harm": 0.976,
+      "last_quarter_env_harm": 0.26,
+      "mean_agent_harm_fraction": 0.7483,
+      "last_quarter_agent_harm_fraction": 0.7949,
+      "episode_count": 200
+    },
+    {
+      "condition": "ATTRIBUTION_BLIND",
+      "seed": 42,
+      "first_quarter_total_harm": 1.248,
+      "last_quarter_total_harm": 1.212,
+      "first_quarter_agent_harm": 0.928,
+      "last_quarter_agent_harm": 0.872,
+      "last_quarter_env_harm": 0.34,
+      "mean_agent_harm_fraction": 0.7236,
+      "last_quarter_agent_harm_fraction": 0.7084,
+      "episode_count": 200
+    },
+    {
+      "condition": "COMPLETION_GATED",
+      "seed": 99,
+      "first_quarter_total_harm": 1.208,
+      "last_quarter_total_harm": 1.298,
+      "first_quarter_agent_harm": 0.648,
+      "last_quarter_agent_harm": 0.928,
+      "last_quarter_env_harm": 0.37,
+      "mean_agent_harm_fraction": 0.5875,
+      "last_quarter_agent_harm_fraction": 0.7144,
+      "episode_count": 200
+    },
+    {
+      "condition": "FREE_REPLAN",
+      "seed": 99,
+      "first_quarter_total_harm": 1.262,
+      "last_quarter_total_harm": 1.276,
+      "first_quarter_agent_harm": 0.792,
+      "last_quarter_agent_harm": 0.936,
+      "last_quarter_env_harm": 0.34,
+      "mean_agent_harm_fraction": 0.635,
+      "last_quarter_agent_harm_fraction": 0.7298,
+      "episode_count": 200
+    },
+    {
+      "condition": "ATTRIBUTION_BLIND",
+      "seed": 99,
+      "first_quarter_total_harm": 1.25,
+      "last_quarter_total_harm": 1.23,
+      "first_quarter_agent_harm": 0.8,
+      "last_quarter_agent_harm": 0.8,
+      "last_quarter_env_harm": 0.43,
+      "mean_agent_harm_fraction": 0.6117,
+      "last_quarter_agent_harm_fraction": 0.6328,
+      "episode_count": 200
+    }
+  ]
+}

@@ -13,8 +13,10 @@ V2 implementation substrate for REE claim experimentation. Upgraded from synthet
 
 ## Experiment Status
 
-13 experiments run (EXQ-014–EXQ-026) against real ree_core, covering MECH-056, MECH-057, MECH-058, MECH-059, MECH-060, MECH-061, ARC-007, ARC-018, MECH-033, Q-007.
-Results in `evidence/experiments/`. Queue in `experiment_queue.json`.
+V2 series complete: 15 experiments run (EXQ-014–EXQ-028) against real ree_core — 6 PASS, 7 FAIL (EXQ-027/028 were SD-003 scoping experiments).
+All three V2 hard-stop criteria met; V3 transition formally triggered.
+Governance sync complete: results indexed in `REE_assembly/evidence/experiments/` via `sync_v2_results.py` + `build_experiment_indexes.py`.
+Full results in `evidence/experiments/`. Historical queue in `experiment_queue.json`.
 
 ## Cross-Repo Roundtrip
 
