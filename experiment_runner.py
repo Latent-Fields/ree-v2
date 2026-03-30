@@ -88,19 +88,31 @@ def find_ree_assembly_path() -> Path | None:
 
 
 def git_pull(repo_path: Path, label: str) -> None:
-    """Pull latest changes. Warns on failure but never raises."""
-    try:
-        r = subprocess.run(
-            ["git", "pull", "--ff-only"],
-            cwd=str(repo_path), capture_output=True, text=True, timeout=30,
-        )
-        if r.returncode == 0:
-            msg = r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "ok"
-            print(f"[runner] git pull {label}: {msg}", flush=True)
-        else:
-            print(f"[runner] git pull {label} warn: {r.stderr.strip()}", flush=True)
-    except Exception as e:
-        print(f"[runner] git pull {label} error: {e}", flush=True)
+    """Pull latest changes. Retries on transient lock errors. Never raises."""
+    import time
+    _LOCK_HINTS = ("cannot lock ref", "unable to resolve reference",
+                   "lock file", "index.lock")
+    for attempt in range(3):
+        try:
+            r = subprocess.run(
+                ["git", "pull", "--ff-only"],
+                cwd=str(repo_path), capture_output=True, text=True, timeout=30,
+            )
+            if r.returncode == 0:
+                msg = r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "ok"
+                print(f"[runner] git pull {label}: {msg}", flush=True)
+                return
+            stderr = r.stderr.strip()
+            if any(h in stderr.lower() for h in _LOCK_HINTS) and attempt < 2:
+                print(f"[runner] git pull {label}: transient lock, retrying "
+                      f"({attempt + 1}/2)...", flush=True)
+                time.sleep(2)
+                continue
+            print(f"[runner] git pull {label} warn: {stderr}", flush=True)
+            return
+        except Exception as e:
+            print(f"[runner] git pull {label} error: {e}", flush=True)
+            return
 
 
 def git_push_results(ree_assembly_path: Path) -> None:
