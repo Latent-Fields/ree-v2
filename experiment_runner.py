@@ -115,13 +115,34 @@ def git_pull(repo_path: Path, label: str) -> None:
             return
 
 
-def git_push_results(ree_assembly_path: Path) -> None:
-    """Stage, commit, and push experiment results in REE_assembly. Warns on failure."""
+def git_push_results(ree_assembly_path: Path, result_files: list[str] | None = None) -> None:
+    """Stage, commit, and push experiment results in REE_assembly.
+
+    If result_files is provided, only those specific files are staged (selective
+    commit).  Otherwise falls back to staging the entire evidence/experiments/
+    directory.
+
+    On push rejection, retries once with pull --rebase.  Never uses git reset --hard
+    to avoid destroying uncommitted work from concurrent Claude sessions.
+
+    Warns on failure; never raises.
+    """
     try:
-        subprocess.run(
-            ["git", "add", "evidence/experiments/"],
-            cwd=str(ree_assembly_path), capture_output=True, text=True, timeout=10,
-        )
+        if result_files:
+            for f in result_files:
+                try:
+                    rel = str(Path(f).relative_to(ree_assembly_path))
+                except ValueError:
+                    rel = f
+                subprocess.run(
+                    ["git", "add", rel],
+                    cwd=str(ree_assembly_path), capture_output=True, text=True, timeout=10,
+                )
+        else:
+            subprocess.run(
+                ["git", "add", "evidence/experiments/"],
+                cwd=str(ree_assembly_path), capture_output=True, text=True, timeout=10,
+            )
         diff = subprocess.run(
             ["git", "diff", "--cached", "--quiet"],
             cwd=str(ree_assembly_path), timeout=5,
@@ -139,7 +160,29 @@ def git_push_results(ree_assembly_path: Path) -> None:
             cwd=str(ree_assembly_path), capture_output=True, text=True, timeout=30,
         )
         if r.returncode == 0:
-            print("[runner] auto-sync: pushed results → REE_assembly", flush=True)
+            print("[runner] auto-sync: pushed results -> REE_assembly", flush=True)
+        elif "non-fast-forward" in r.stderr or "fetch first" in r.stderr:
+            # Retry once with pull --rebase
+            pull = subprocess.run(
+                ["git", "pull", "--rebase", "origin", "master"],
+                cwd=str(ree_assembly_path), capture_output=True, text=True, timeout=30,
+            )
+            if pull.returncode == 0:
+                r2 = subprocess.run(
+                    ["git", "push", "origin", "HEAD:master"],
+                    cwd=str(ree_assembly_path), capture_output=True, text=True, timeout=30,
+                )
+                if r2.returncode == 0:
+                    print("[runner] auto-sync: pushed results -> REE_assembly (after rebase)",
+                          flush=True)
+                else:
+                    print(f"[runner] auto-sync push warn (retry): {r2.stderr.strip()}", flush=True)
+            else:
+                # Rebase failed -- abort and skip; don't use git reset --hard
+                subprocess.run(["git", "rebase", "--abort"],
+                               cwd=str(ree_assembly_path), capture_output=True, timeout=10)
+                print(f"[runner] auto-sync: rebase conflict -- skipping push (will retry next sync)",
+                      flush=True)
         else:
             print(f"[runner] auto-sync push warn: {r.stderr.strip()}", flush=True)
     except Exception as e:
@@ -683,6 +726,8 @@ def main():
     status["queue"] = [qi for qi in status["queue"] if qi["queue_id"] not in completed_ids]
     write_status(status, status_path)
 
+    _result_files_this_pass: list[str] = []
+
     while True:
         ran_any = False
 
@@ -736,6 +781,10 @@ def main():
             ran_any = True
             _current_claim.clear()
 
+            # Collect output file for selective git staging
+            if result.get("output_file"):
+                _result_files_this_pass.append(result["output_file"])
+
             # Fix 2: update per-script calibration from actual run time
             if result["result"] not in ("ERROR", "UNKNOWN") and result.get("actual_secs"):
                 save_script_timing(
@@ -775,7 +824,8 @@ def main():
             break
 
         if args.auto_sync and ran_any and ree_assembly_path:
-            git_push_results(ree_assembly_path)
+            git_push_results(ree_assembly_path, _result_files_this_pass or None)
+            _result_files_this_pass.clear()
 
         # Loop mode: wait, then reload queue for any newly-added items
         status["idle"] = True
@@ -826,7 +876,7 @@ def main():
     print("[runner] Queue exhausted. Runner idle.", flush=True)
 
     if args.auto_sync and ree_assembly_path:
-        git_push_results(ree_assembly_path)
+        git_push_results(ree_assembly_path, _result_files_this_pass or None)
 
     if PID_FILE.exists():
         PID_FILE.unlink()
